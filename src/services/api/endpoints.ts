@@ -96,20 +96,20 @@ export const runbookApi = {
     const { data } = await apiClient.get<ApiResponse<Runbook[]>>(apiConfig.endpoints.runbooks.list);
     return data.data;
   },
-  async detail(id: string) {
+  async detail(id: string | number) {
     const { data } = await apiClient.get<ApiResponse<Runbook>>(
-      apiConfig.endpoints.runbooks.detail(id),
+      apiConfig.endpoints.runbooks.detail(id.toString()),
     );
     return data.data;
   },
-  async execute(id: string, incidentId: string) {
+  async execute(id: string | number, incidentId: string) {
     const { data } = await apiClient.post<ApiResponse<{ success: boolean; output: string }>>(
-      apiConfig.endpoints.runbooks.execute(id),
+      apiConfig.endpoints.runbooks.execute(id.toString()),
       { incident_id: incidentId },
     );
     return data.data;
   },
-  async executions(id: string, limit = 20) {
+  async executions(id: string | number, limit = 20) {
     const { data } = await apiClient.get<
       ApiResponse<
         Array<{
@@ -137,17 +137,12 @@ export const runbookApi = {
     >(`/runbooks/${id}/executions`, { params: { limit } });
     return data.data;
   },
-  async upload(file: File) {
+  async upload(files: File[]) {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => formData.append('files', file));
     const { data } = await apiClient.post<ApiResponse<Runbook>>(
       apiConfig.endpoints.runbooks.upload,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      },
     );
     return data.data;
   },
@@ -168,23 +163,18 @@ export const kbApi = {
     );
     return data.data;
   },
-  async detail(id: string) {
+  async detail(id: string | number) {
     const { data } = await apiClient.get<ApiResponse<KBArticle>>(
-      apiConfig.endpoints.knowledgeBase.detail(id),
+      apiConfig.endpoints.knowledgeBase.detail(id.toString()),
     );
     return data.data;
   },
-  async upload(file: File) {
+  async upload(files: File[]) {
     const formData = new FormData();
-    formData.append('file', file);
+    files.forEach((file) => formData.append('files', file));
     const { data } = await apiClient.post<ApiResponse<KBArticle>>(
       apiConfig.endpoints.knowledgeBase.upload,
       formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      },
     );
     return data.data;
   },

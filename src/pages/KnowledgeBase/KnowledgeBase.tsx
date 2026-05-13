@@ -27,7 +27,7 @@ export default function KnowledgeBase() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => kbApi.upload(file),
+    mutationFn: (files: File[]) => kbApi.upload(files),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['kb'] });
       setIsModalOpen(false);
@@ -36,7 +36,7 @@ export default function KnowledgeBase() {
 
   const handleCreate = async (data: { files: File[] }) => {
     if (data.files.length > 0) {
-      uploadMutation.mutate(data.files[0]);
+      uploadMutation.mutate(data.files);
     }
   };
 
@@ -111,7 +111,14 @@ export default function KnowledgeBase() {
                     {article.title}
                   </h3>
                   <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">
-                    {article.summary}
+                    {(() => {
+                      const s = article.summary;
+                      if (typeof s === 'string') return s;
+                      if (typeof s === 'object' && s !== null) {
+                        return (s as any).summary || (s as any).overview || 'No summary available.';
+                      }
+                      return 'No summary available.';
+                    })()}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-1">
                     {article.tags.slice(0, 3).map((t) => (

@@ -40,7 +40,7 @@ export default function Runbooks() {
   });
 
   const uploadMutation = useMutation({
-    mutationFn: (file: File) => runbookApi.upload(file),
+    mutationFn: (files: File[]) => runbookApi.upload(files),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runbooks'] });
       setIsModalOpen(false);
@@ -49,7 +49,7 @@ export default function Runbooks() {
 
   const handleCreate = async (data: { files: File[] }) => {
     if (data.files.length > 0) {
-      uploadMutation.mutate(data.files[0]);
+      uploadMutation.mutate(data.files);
     }
   };
 
@@ -58,7 +58,8 @@ export default function Runbooks() {
   const filtered = (data ?? []).filter(
     (rb) =>
       rb.name.toLowerCase().includes(search.toLowerCase()) ||
-      rb.category.toLowerCase().includes(search.toLowerCase()),
+      rb.category?.toLowerCase().includes(search.toLowerCase()) ||
+      rb.summary?.category?.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -119,17 +120,19 @@ export default function Runbooks() {
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">{rb.name}</p>
-                        <p className="text-xs text-muted-foreground">{rb.category}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {typeof rb.category === 'object' ? 'Uncategorized' : (rb.category || rb.summary?.category || '')}
+                        </p>
                         <div className="mt-1.5 flex items-center gap-2">
                           <Badge
-                            variant={rb.successRate > 0.9 ? 'success' : 'warning'}
+                            variant={(rb.successRate ?? 0) > 0.9 ? 'success' : 'warning'}
                             className="text-[10px]"
                           >
                             <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
-                            {formatPercent(rb.successRate, 0)}
+                            {formatPercent(rb.successRate ?? 0, 0)}
                           </Badge>
                           <span className="text-[10px] text-muted-foreground">
-                            {rb.executionCount} runs
+                            {rb.executionCount ?? 0} runs
                           </span>
                         </div>
                       </div>
@@ -155,8 +158,21 @@ export default function Runbooks() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-mono text-muted-foreground">{selected.id}</p>
-                      <h2 className="mt-1 text-xl font-bold text-foreground">{selected.name}</h2>
-                       <p className="mt-1 text-sm text-muted-foreground">{selected.description}</p>
+                      <h2 className="mt-1 text-xl font-bold text-foreground">
+                        {(() => {
+                          const name = selected.summary?.name || selected.name;
+                          return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
+                        })()}
+                      </h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {(() => {
+                          const summary = selected.summary?.summary || selected.summary?.description || selected.description;
+                          if (typeof summary === 'object' && summary !== null) {
+                            return (summary as any).summary || (summary as any).overview || 'No summary available.';
+                          }
+                          return summary || 'No summary available.';
+                        })()}
+                      </p>
                     </div>
                     <Badge variant={selected.isActive ? 'success' : 'muted'} dot className="shrink-0">
                       {selected.isActive ? 'Active' : 'Disabled'}
@@ -230,7 +246,7 @@ function StepsTab({ runbook }: { runbook: Runbook }) {
     <>
       <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Execution Steps</p>
       <ol className="space-y-2">
-        {runbook.steps.map((step) => (
+        {(runbook.steps || runbook.execution_steps || []).map((step) => (
           <li
             key={step.order}
             className="flex gap-3 px-3 py-2.5 rounded-md border border-border bg-muted/30"
@@ -239,7 +255,9 @@ function StepsTab({ runbook }: { runbook: Runbook }) {
               {step.order}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">{step.title}</p>
+              <p className="text-sm font-medium text-foreground">
+                {typeof step.title === 'object' ? JSON.stringify(step.title) : (step.title || 'Untitled Step')}
+              </p>
               {step.command && (
                 <pre className="mt-1.5 p-2 rounded bg-foreground/5 text-[11px] font-mono text-foreground/80 overflow-x-auto">
                   {step.command}
@@ -253,7 +271,7 @@ function StepsTab({ runbook }: { runbook: Runbook }) {
   );
 }
 
-function HistoryTab({ runbookId }: { runbookId: string }) {
+function HistoryTab({ runbookId }: { runbookId: string | number }) {
   const { data, isLoading } = useQuery({
     queryKey: ['runbook-executions', runbookId],
     queryFn: () => runbookApi.executions(runbookId, 20),

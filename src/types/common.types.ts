@@ -82,18 +82,27 @@ export interface IncidentCreatePayload {
 
 // ===== Runbooks =====
 export interface Runbook {
-  id: string;
+  id: string | number;
   name: string;
-  description: string;
-  category: string;
-  steps: RunbookStep[];
-  triggers: string[];
-  lastUpdated: string;
-  successRate: number;
-  executionCount: number;
-  averageDurationSeconds: number;
-  isActive: boolean;
-  createdBy: string;
+  description?: string;
+  category?: string;
+  summary?: {
+    name: string | null;
+    summary: string | null;
+    category: string | null;
+    description: string | null;
+  };
+  steps?: RunbookStep[];
+  execution_steps?: RunbookStep[];
+  triggers?: string[];
+  lastUpdated?: string;
+  successRate?: number;
+  executionCount?: number;
+  averageDurationSeconds?: number;
+  isActive?: boolean;
+  createdBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RunbookStep {
@@ -106,17 +115,22 @@ export interface RunbookStep {
 
 // ===== Knowledge Base =====
 export interface KBArticle {
-  id: string;
+  id: string | number;
   title: string;
-  content: string;
-  summary: string;
+  content?: string;
+  summary: string | {
+    name: string | null;
+    summary: string | null;
+    category: string | null;
+    description: string | null;
+  };
   tags: string[];
   category: string;
-  author: string;
+  author?: string;
   views: number;
   helpful: number;
   notHelpful: number;
-  isPublished: boolean;
+  isPublished?: boolean;
   createdAt: string;
   updatedAt: string;
 }
