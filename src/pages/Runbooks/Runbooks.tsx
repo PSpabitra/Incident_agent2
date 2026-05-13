@@ -156,7 +156,7 @@ export default function Runbooks() {
                     <div className="min-w-0">
                       <p className="text-xs font-mono text-muted-foreground">{selected.id}</p>
                       <h2 className="mt-1 text-xl font-bold text-foreground">{selected.name}</h2>
-                      {/* <p className="mt-1 text-sm text-muted-foreground">{selected.description}</p> */}
+                       <p className="mt-1 text-sm text-muted-foreground">{selected.description}</p>
                     </div>
                     <Badge variant={selected.isActive ? 'success' : 'muted'} dot className="shrink-0">
                       {selected.isActive ? 'Active' : 'Disabled'}
