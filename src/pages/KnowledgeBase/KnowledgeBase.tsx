@@ -110,7 +110,7 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
     }
   }, [article.summary?.summary]);
 
-  const hasExtraSteps = 
+  const hasExtraSteps =
     typeof article.summary === 'object' && (
       ((article.summary.description as any)?.approvals || []).length > 0 ||
       ((article.summary.description as any)?.verification || []).length > 0
@@ -151,7 +151,7 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
             {typeof article.summary === 'object' && article.summary?.description && (
               <div className="space-y-2">
                 <div className="relative">
-                  <p 
+                  <p
                     ref={textRef}
                     className={`text-[11px] text-muted-foreground italic border-l-2 border-primary/20 pl-2 ${!isExpanded ? 'line-clamp-2' : ''}`}
                   >

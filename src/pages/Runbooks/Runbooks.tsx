@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -22,6 +22,7 @@ import { EmptyState } from '@/components/shared/EmptyState';
 import { CreateContentModal } from '@/components/shared/CreateContentModal';
 import { runbookApi } from '@/services/api/endpoints';
 import { formatDuration, formatPercent, formatRelativeTime } from '@/utils/formatters';
+import { cn } from '@/utils/cn';
 import type { Runbook } from '@/types';
 
 type TabId = 'steps' | 'history';
@@ -33,7 +34,21 @@ export default function Runbooks() {
   const [selected, setSelected] = useState<Runbook | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('steps');
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const checkClamped = () => {
+      if (textRef.current) {
+        setIsClamped(textRef.current.scrollHeight > textRef.current.clientHeight);
+      }
+    };
+    
+    checkClamped();
+    const timer = setTimeout(checkClamped, 50);
+    return () => clearTimeout(timer);
+  }, [selected?.id, selected?.summary?.description, selected?.summary?.summary, selected?.description, isExpanded]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['runbooks'],
@@ -55,7 +70,7 @@ export default function Runbooks() {
   };
 
 
-  
+
   const filtered = (data ?? []).filter(
     (rb) =>
       rb.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -70,7 +85,7 @@ export default function Runbooks() {
       description="Automated remediation playbooks executed by the resolution agent."
       actions={
         <div className="flex gap-2">
-         
+
           <Button
             leftIcon={<Plus className="h-4 w-4" />}
             onClick={() => {
@@ -117,9 +132,8 @@ export default function Runbooks() {
                         setActiveTab('steps');
                         setIsExpanded(false);
                       }}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors ${
-                        selected?.id === rb.id ? 'bg-primary/5' : ''
-                      }`}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors ${selected?.id === rb.id ? 'bg-primary/5' : ''
+                        }`}
                     >
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground truncate">
@@ -162,36 +176,54 @@ export default function Runbooks() {
                 <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      
-                      <div className="flex items-center gap-3 mt-1">
+
+                      <div className="flex items-start gap-3 mt-1">
                         <h2 className="text-xl font-bold text-foreground">
                           {(() => {
                             const name = selected.summary?.name || selected.name;
                             return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
                           })()}
                         </h2>
-                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0">
+                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0 mt-1.5">
                           {selected.summary?.category || selected.category || 'General'}
                         </Badge>
                       </div>
-                      <div className="relative">
-                        <p className={`mt-1 text-sm text-muted-foreground whitespace-pre-wrap ${!isExpanded ? 'line-clamp-6' : ''}`}>
-                          {(() => {
-                            const desc = selected.summary?.description || selected.summary?.summary || selected.description;
-                            if (typeof desc === 'object' && desc !== null) {
-                              return (desc as any).description || (desc as any).summary || (desc as any).overview || 'No description available.';
-                            }
-                            return desc || 'No description available.';
-                          })()}
-                        </p>
-                        <button
-                          onClick={() => setIsExpanded(!isExpanded)}
-                          className="mt-1 text-xs font-medium text-primary hover:underline focus:outline-none"
+                      <div className="relative mt-2">
+                        <div 
+                          className={cn(
+                            "transition-all duration-300",
+                            isExpanded ? "max-h-[200px] overflow-y-auto custom-scrollbar" : ""
+                          )}
                         >
-                          {isExpanded ? 'Show less' : 'Read more'}
-                        </button>
+                          <p 
+                            ref={textRef}
+                            style={!isExpanded ? {
+                              display: '-webkit-box',
+                              WebkitLineClamp: 6,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden'
+                            } : {}}
+                            className="text-sm text-muted-foreground whitespace-pre-wrap"
+                          >
+                            {(() => {
+                              const desc = selected.summary?.description || selected.summary?.summary || selected.description;
+                              if (typeof desc === 'object' && desc !== null) {
+                                return (desc as any).description || (desc as any).summary || (desc as any).overview || 'No description available.';
+                              }
+                              return desc || 'No description available.';
+                            })()}
+                          </p>
+                        </div>
+                        {(isClamped || isExpanded) && (
+                          <button
+                            onClick={() => setIsExpanded(!isExpanded)}
+                            className="mt-1 text-xs font-medium text-primary hover:underline focus:outline-none"
+                          >
+                            {isExpanded ? 'Show less' : 'Read more'}
+                          </button>
+                        )}
                       </div>
-                      
+
                     </div>
                     <Badge variant={selected.isActive ? 'success' : 'muted'} dot className="shrink-0">
                       {selected.isActive ? 'Active' : 'Disabled'}
@@ -210,7 +242,7 @@ export default function Runbooks() {
                   {(
                     [
                       { id: 'steps', label: 'Defined steps', icon: GitBranch },
-                     
+
                     ] as const
                   ).map((tab) => {
                     const Icon = tab.icon;
@@ -219,11 +251,10 @@ export default function Runbooks() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${
-                          active
+                        className={`inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${active
                             ? 'border-primary text-primary'
                             : 'border-transparent text-muted-foreground hover:text-foreground'
-                        }`}
+                          }`}
                         type="button"
                       >
                         <Icon className="h-3.5 w-3.5" />
@@ -362,9 +393,8 @@ function ExecutionCard({
       >
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <StatusIcon
-            className={`h-4 w-4 shrink-0 ${
-              execution.success ? 'text-success' : 'text-critical'
-            }`}
+            className={`h-4 w-4 shrink-0 ${execution.success ? 'text-success' : 'text-critical'
+              }`}
           />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -394,9 +424,8 @@ function ExecutionCard({
           <div>{formatRelativeTime(execution.executed_at)}</div>
         </div>
         <ChevronRight
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${
-            open ? 'rotate-90' : ''
-          }`}
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''
+            }`}
         />
       </button>
 
