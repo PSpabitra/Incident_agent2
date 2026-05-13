@@ -46,7 +46,7 @@ export default function KnowledgeBase() {
       description="Continuously updated articles drafted by the KB Learning Agent."
       actions={
         <div className="flex gap-2">
-          
+
           <Button
             leftIcon={<Plus className="h-4 w-4" />}
             onClick={() => {
@@ -89,61 +89,111 @@ export default function KnowledgeBase() {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
           {data.map((article, idx) => (
-            <motion.div
-              key={article.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.03 }}
-            >
-              <Card className="h-full flex flex-col cursor-pointer group">
-                <CardContent className="flex-1 flex flex-col">
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge variant="outline" className="text-[10px]">
-                      {article.category}
-                    </Badge>
-                    <span className="text-xs text-muted-foreground font-mono">
-                      {article.id}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                    {article.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground line-clamp-3 flex-1">
-                    {(() => {
-                      const s = article.summary;
-                      if (typeof s === 'string') return s;
-                      if (typeof s === 'object' && s !== null) {
-                        return (s as any).summary || (s as any).overview || 'No summary available.';
-                      }
-                      return 'No summary available.';
-                    })()}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-1">
-                    {article.tags.slice(0, 3).map((t) => (
-                      <Badge key={t} variant="muted" className="text-[10px]">
-                        {t}
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-                    <span className="flex items-center gap-3">
-                      <span className="inline-flex items-center gap-1">
-                        <Eye className="h-3 w-3" /> {article.views}
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <ThumbsUp className="h-3 w-3" /> {article.helpful}
-                      </span>
-                    </span>
-                    <span>{formatRelativeTime(article.updatedAt)}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <KnowledgeBaseCard key={article.id} article={article} idx={idx} />
           ))}
         </div>
       )}
     </PageWrapper>
+  );
+}
+
+function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.03 }}
+    >
+      <Card className="h-full flex flex-col cursor-pointer group">
+        <CardContent className="flex-1 flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+              {(typeof article.summary === 'object' ? article.summary?.category : null) ||
+                article.category ||
+                'General'}
+            </Badge>
+            <span className="text-xs text-muted-foreground font-mono">{article.id}</span>
+          </div>
+          <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2">
+            {(typeof article.summary === 'object' ? article.summary?.name : null) || article.title}
+          </h3>
+          <div className="mt-2 space-y-3 flex-1">
+            <p className="text-sm text-muted-foreground line-clamp-3">
+              {(() => {
+                const s = article.summary;
+                if (typeof s === 'object' && s !== null) {
+                  return (s.description as any)?.purpose || s.summary || s.overview || 'No summary available.';
+                }
+                return s || 'No summary available.';
+              })()}
+            </p>
+
+            {typeof article.summary === 'object' && article.summary?.description && (
+              <div className="space-y-2">
+                <div className="relative">
+                  <p className={`text-[11px] text-muted-foreground italic border-l-2 border-primary/20 pl-2 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                    {article.summary.summary || 'Summary not available.'}
+                  </p>
+                </div>
+
+                {isExpanded && (
+                  <div className="pt-2 grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {((article.summary.description as any).approvals || []).length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Approvals Required</p>
+                        <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
+                          {(article.summary.description as any).approvals.map((item: string, i: number) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {((article.summary.description as any).verification || []).length > 0 && (
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Verification Steps</p>
+                        <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
+                          {(article.summary.description as any).verification.map((item: string, i: number) => (
+                            <li key={i}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="text-[10px] font-medium text-primary hover:underline focus:outline-none"
+                >
+                  {isExpanded ? 'Show less' : 'Read more details'}
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {(article.tags || []).slice(0, 3).map((t: string) => (
+              <Badge key={t} variant="muted" className="text-[10px]">
+                {t}
+              </Badge>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-border flex flex-wrap items-center justify-between gap-y-1 text-[10px] text-muted-foreground">
+            <span className="font-medium">By: {article.author || 'System'}</span>
+            <div className="flex items-center gap-2">
+              <span>Created {formatRelativeTime(article.createdAt)}</span>
+              <span className="text-border">•</span>
+              <span>Updated {formatRelativeTime(article.updatedAt)}</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
