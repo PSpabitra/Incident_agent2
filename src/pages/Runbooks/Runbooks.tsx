@@ -157,7 +157,12 @@ export default function Runbooks() {
                 <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-mono text-muted-foreground">{selected.id}</p>
+                      <div className="flex items-center gap-2">
+  
+                        <Badge variant="outline" className="text-[10px] py-0 h-4 uppercase tracking-wider">
+                          {selected.summary?.category || selected.category || 'General'}
+                        </Badge>
+                      </div>
                       <h2 className="mt-1 text-xl font-bold text-foreground">
                         {(() => {
                           const name = selected.summary?.name || selected.name;
