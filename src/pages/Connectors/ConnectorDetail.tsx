@@ -83,7 +83,7 @@ export function ConnectorDetail() {
   const startOAuth = useMutation({
     mutationFn: () => ConnectorsApi.startOAuth(id),
     onSuccess: (res) => {
-      window.location.href = res.authorize_url;
+      window.open(res.authorize_url, '_blank');
     },
     onError: (e: Error) => toast.error('Failed to start OAuth', e.message),
   });
