@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, BookOpen, Eye, ThumbsUp, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -89,7 +89,7 @@ export default function KnowledgeBase() {
           />
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4 items-start">
           {data.map((article, idx) => (
             <KnowledgeBaseCard key={article.id} article={article} idx={idx} />
           ))}
@@ -101,6 +101,22 @@ export default function KnowledgeBase() {
 
 function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isClamped, setIsClamped] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  useEffect(() => {
+    if (textRef.current) {
+      setIsClamped(textRef.current.scrollHeight > textRef.current.clientHeight);
+    }
+  }, [article.summary?.summary]);
+
+  const hasExtraSteps = 
+    typeof article.summary === 'object' && (
+      ((article.summary.description as any)?.approvals || []).length > 0 ||
+      ((article.summary.description as any)?.verification || []).length > 0
+    );
+
+  const showButton = isExpanded || isClamped || hasExtraSteps;
 
   return (
     <motion.div
@@ -108,7 +124,7 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.03 }}
     >
-      <Card className="h-full flex flex-col cursor-pointer group">
+      <Card className="max-h-[500px] overflow-y-auto flex flex-col cursor-pointer group">
         <CardContent className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
@@ -135,7 +151,10 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
             {typeof article.summary === 'object' && article.summary?.description && (
               <div className="space-y-2">
                 <div className="relative">
-                  <p className={`text-[11px] text-muted-foreground italic border-l-2 border-primary/20 pl-2 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                  <p 
+                    ref={textRef}
+                    className={`text-[11px] text-muted-foreground italic border-l-2 border-primary/20 pl-2 ${!isExpanded ? 'line-clamp-2' : ''}`}
+                  >
                     {article.summary.summary || 'Summary not available.'}
                   </p>
                 </div>
@@ -165,15 +184,17 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
                   </div>
                 )}
 
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
-                  className="text-[10px] font-medium text-primary hover:underline focus:outline-none"
-                >
-                  {isExpanded ? 'Show less' : 'Read more details'}
-                </button>
+                {showButton && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsExpanded(!isExpanded);
+                    }}
+                    className="text-[10px] font-medium text-primary hover:underline focus:outline-none"
+                  >
+                    {isExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                )}
               </div>
             )}
           </div>

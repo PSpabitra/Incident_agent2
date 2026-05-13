@@ -93,7 +93,7 @@ export default function Runbooks() {
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         <div className="lg:col-span-2">
-          <Card>
+          <Card className="max-h-[70vh] flex flex-col">
             <div className="px-4 py-3 border-b border-border">
               <Input
                 placeholder="Search runbooks…"
@@ -108,7 +108,7 @@ export default function Runbooks() {
               ) : filtered.length === 0 ? (
                 <EmptyState icon={GitBranch} title="No runbooks" />
               ) : (
-                <div className="divide-y divide-border max-h-[70vh] overflow-y-auto">
+                <div className="divide-y divide-border flex-1 overflow-y-auto">
                   {filtered.map((rb) => (
                     <button
                       key={rb.id}
@@ -158,7 +158,7 @@ export default function Runbooks() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
             >
-              <Card>
+              <Card className="max-h-[70vh] flex flex-col">
                 <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -233,7 +233,7 @@ export default function Runbooks() {
                   })}
                 </div>
 
-                <CardContent>
+                <CardContent className="flex-1 overflow-y-auto">
                   {activeTab === 'steps' ? (
                     <StepsTab runbook={selected} />
                   ) : (
@@ -243,7 +243,7 @@ export default function Runbooks() {
               </Card>
             </motion.div>
           ) : (
-            <Card>
+            <Card className="max-h-[70vh] flex flex-col items-center justify-center min-h-[400px]">
               <EmptyState
                 icon={GitBranch}
                 title="Select a runbook"
