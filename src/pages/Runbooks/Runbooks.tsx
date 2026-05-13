@@ -32,6 +32,7 @@ export default function Runbooks() {
   const [modalType, setModalType] = useState<'Runbook' | 'Article'>('Runbook');
   const [selected, setSelected] = useState<Runbook | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('steps');
+  const [isExpanded, setIsExpanded] = useState(false);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -58,6 +59,7 @@ export default function Runbooks() {
   const filtered = (data ?? []).filter(
     (rb) =>
       rb.name.toLowerCase().includes(search.toLowerCase()) ||
+      rb.summary?.name?.toLowerCase().includes(search.toLowerCase()) ||
       rb.category?.toLowerCase().includes(search.toLowerCase()) ||
       rb.summary?.category?.toLowerCase().includes(search.toLowerCase()),
   );
@@ -113,13 +115,16 @@ export default function Runbooks() {
                       onClick={() => {
                         setSelected(rb);
                         setActiveTab('steps');
+                        setIsExpanded(false);
                       }}
                       className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors ${
                         selected?.id === rb.id ? 'bg-primary/5' : ''
                       }`}
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{rb.name}</p>
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {rb.summary?.name || rb.name}
+                        </p>
                         <p className="text-xs text-muted-foreground">
                           {typeof rb.category === 'object' ? 'Uncategorized' : (rb.category || rb.summary?.category || '')}
                         </p>
@@ -157,27 +162,36 @@ export default function Runbooks() {
                 <div className="px-6 py-5 border-b border-border">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-  
-                        <Badge variant="outline" className="text-[10px] py-0 h-4 uppercase tracking-wider">
+                      
+                      <div className="flex items-center gap-3 mt-1">
+                        <h2 className="text-xl font-bold text-foreground">
+                          {(() => {
+                            const name = selected.summary?.name || selected.name;
+                            return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
+                          })()}
+                        </h2>
+                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0">
                           {selected.summary?.category || selected.category || 'General'}
                         </Badge>
                       </div>
-                      <h2 className="mt-1 text-xl font-bold text-foreground">
-                        {(() => {
-                          const name = selected.summary?.name || selected.name;
-                          return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
-                        })()}
-                      </h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        {(() => {
-                          const summary = selected.summary?.summary || selected.summary?.description || selected.description;
-                          if (typeof summary === 'object' && summary !== null) {
-                            return (summary as any).summary || (summary as any).overview || 'No summary available.';
-                          }
-                          return summary || 'No summary available.';
-                        })()}
-                      </p>
+                      <div className="relative">
+                        <p className={`mt-1 text-sm text-muted-foreground whitespace-pre-wrap ${!isExpanded ? 'line-clamp-6' : ''}`}>
+                          {(() => {
+                            const desc = selected.summary?.description || selected.summary?.summary || selected.description;
+                            if (typeof desc === 'object' && desc !== null) {
+                              return (desc as any).description || (desc as any).summary || (desc as any).overview || 'No description available.';
+                            }
+                            return desc || 'No description available.';
+                          })()}
+                        </p>
+                        <button
+                          onClick={() => setIsExpanded(!isExpanded)}
+                          className="mt-1 text-xs font-medium text-primary hover:underline focus:outline-none"
+                        >
+                          {isExpanded ? 'Show less' : 'Read more'}
+                        </button>
+                      </div>
+                      
                     </div>
                     <Badge variant={selected.isActive ? 'success' : 'muted'} dot className="shrink-0">
                       {selected.isActive ? 'Active' : 'Disabled'}

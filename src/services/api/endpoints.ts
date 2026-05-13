@@ -143,6 +143,11 @@ export const runbookApi = {
     const { data } = await apiClient.post<ApiResponse<Runbook>>(
       apiConfig.endpoints.runbooks.upload,
       formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
     );
     return data.data;
   },
@@ -175,6 +180,11 @@ export const kbApi = {
     const { data } = await apiClient.post<ApiResponse<KBArticle>>(
       apiConfig.endpoints.knowledgeBase.upload,
       formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      },
     );
     return data.data;
   },
