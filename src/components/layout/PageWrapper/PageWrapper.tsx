@@ -13,9 +13,11 @@ interface PageWrapperProps {
   actions?: ReactNode;
   /** Render content edge-to-edge without the standard padded container. */
   bare?: boolean;
+  /** Disable the internal scroll of the main content area. */
+  noScroll?: boolean;
 }
 
-export function PageWrapper({ children, title, description, actions, bare }: PageWrapperProps) {
+export function PageWrapper({ children, title, description, actions, bare, noScroll }: PageWrapperProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
@@ -34,7 +36,8 @@ export function PageWrapper({ children, title, description, actions, bare }: Pag
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
           className={cn(
-            'flex-1 min-w-0 overflow-y-auto custom-scrollbar',
+            'flex flex-col min-w-0 h-full',
+            noScroll ? 'overflow-hidden' : 'overflow-y-auto custom-scrollbar',
             bare ? '' : 'mx-auto w-full max-w-7xl px-4 sm:px-6 py-6',
           )}
         >

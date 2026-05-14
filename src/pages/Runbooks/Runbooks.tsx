@@ -238,10 +238,10 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
   if (isLoading) return <PageSpinner />;
 
   return (
-    <PageWrapper bare>
-      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-8 space-y-8">
+    <PageWrapper bare noScroll>
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-8 h-full flex flex-col space-y-6 overflow-hidden">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-none">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2.5 text-slate-900">
               <BookOpen className="h-7 w-7 text-slate-800" /> Runbooks
@@ -251,7 +251,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               className="bg-white border-slate-200 text-slate-600 font-bold text-[11px] tracking-widest h-10 px-4"
@@ -259,7 +259,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
               onClick={() => queryClient.invalidateQueries({ queryKey: ['runbooks'] })}
             >
               REFRESH
-            </Button>
+            </Button> */}
             <Button
               size="sm"
               className="bg-blue-600 text-white hover:bg-blue-700 font-bold text-[11px] tracking-widest h-10 px-5 shadow-lg shadow-blue-100"
@@ -275,7 +275,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 flex-none">
           {stats.map((s) => (
             <Card key={s.label} className="p-6 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex justify-between items-start">
@@ -302,7 +302,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         </div>
 
         {/* Filter/Search Bar */}
-        <Card className="p-2 border-slate-100 shadow-sm">
+        <Card className="p-2 border-slate-100 shadow-sm flex-none">
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -334,13 +334,13 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
           </div>
         </Card>
         {/* Table View */}
-        <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl min-h-[400px] flex flex-col">
+        <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl flex-1 flex flex-col min-h-0 bg-white">
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center py-20">
               <PageSpinner />
             </div>
           ) : (
-            <div className="overflow-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            <div className="flex-1 overflow-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
               <Table className="border-none border-separate border-spacing-0">
                 <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
                   <TR className="hover:bg-transparent border-none">
