@@ -434,7 +434,11 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         {selectedRunbook && (
           <div className="space-y-6">
             <ManualRichSummary 
-              data={selectedRunbook.summary?.description || selectedRunbook.description || {}} 
+              data={
+                typeof selectedRunbook.description === 'object' && selectedRunbook.description !== null
+                  ? (selectedRunbook.description as any)
+                  : { overview: renderDescription(selectedRunbook) }
+              } 
             />
           </div>
         )}
