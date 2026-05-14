@@ -8,7 +8,6 @@ import {
   Search,
   Trash2,
   Layers,
-  History,
   XCircle,
 } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';

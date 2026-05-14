@@ -22,7 +22,7 @@ interface CreateContentModalProps {
 
 const SUPPORTED_FORMATS = ['.docx', '.pdf'];
 const ACCEPT_STR = SUPPORTED_FORMATS.join(',');
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 const CATEGORIES = ['Git', 'Cloud', 'Infrastructure', 'Security', 'Database', 'Operations', 'Network'];
 
@@ -40,6 +40,7 @@ export function CreateContentModal({
   const { error } = useToast();
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Editable fields
@@ -88,6 +89,7 @@ export function CreateContentModal({
   const addFiles = (newFiles: File[]) => {
     const validFiles: File[] = [];
     const errors: string[] = [];
+    setLocalError(null);
 
     newFiles.forEach((file) => {
       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
@@ -104,7 +106,7 @@ export function CreateContentModal({
     });
 
     if (errors.length > 0) {
-      error('File Validation Error', errors[0]);
+      setLocalError(errors[0]);
     }
 
     if (validFiles.length > 0) {
@@ -114,6 +116,7 @@ export function CreateContentModal({
 
   const removeFile = (index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
+    if (files.length <= 1) setLocalError(null);
   };
 
   const onDragOver = useCallback((e: React.DragEvent) => {
@@ -169,6 +172,7 @@ export function CreateContentModal({
 
   const resetAndClose = () => {
     setFiles([]);
+    setLocalError(null);
     setActiveTab('preview');
     onClose();
   };
@@ -348,6 +352,12 @@ export function CreateContentModal({
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
+          {localError && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 animate-in fade-in slide-in-from-top-2 duration-200">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p className="text-xs font-bold tracking-tight">{localError}</p>
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Upload Files</label>
             <div

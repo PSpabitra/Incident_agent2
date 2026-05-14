@@ -311,7 +311,7 @@ export default function IncidentDetails() {
                 )}
               </CardContent>
             </Card>
-
+{/* 
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -333,7 +333,7 @@ export default function IncidentDetails() {
                   <Mail className="h-4 w-4" /> Notify caller
                 </button>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card>
               <CardHeader>
@@ -409,14 +409,14 @@ function MistralAnalysisCard({ incidentId }: { incidentId: string }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Bot className="h-4 w-4 text-primary" /> Automated Agent Analysis
-          <Badge variant={analysis.confidence >= 0.7 ? 'success' : 'warning'}>
+          {/* <Badge variant={analysis.confidence >= 0.7 ? 'success' : 'warning'}>
             {Math.round(analysis.confidence * 100)}% confidence
-          </Badge>
+          </Badge> */}
         </CardTitle>
-        <CardDescription>
+        {/* <CardDescription>
           Agent step · {analysis.latencyMs}ms ·{' '}
           {analysis.tokensIn + analysis.tokensOut} tokens
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent className="space-y-4">
         {analysis.rootCause && (
