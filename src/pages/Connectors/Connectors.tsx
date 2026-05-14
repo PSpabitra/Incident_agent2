@@ -267,8 +267,17 @@ function CreateConnectorModal({
   onCreated: (c: Connector) => void;
 }) {
   const [name, setName] = useState(`${provider.display_name} (default)`);
+
+  // Inject extra fields for certain providers
+  const effectiveConfigKeys =
+    provider.provider === 'jira'
+      ? [...new Set([...provider.required_config, 'jira_url', 'jira_email', 'jira_api_token'])]
+      : provider.provider === 'servicenow'
+      ? [...new Set([...provider.required_config, 'username', 'password'])]
+      : provider.required_config;
+
   const [config, setConfig] = useState<Record<string, string>>(
-    Object.fromEntries(provider.required_config.map((k) => [k, ''])),
+    Object.fromEntries(effectiveConfigKeys.map((k) => [k, ''])),
   );
 
   const create = useMutation({
@@ -308,11 +317,11 @@ function CreateConnectorModal({
           onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
           placeholder="e.g. Acme Jira (Production)"
         />
-        {provider.required_config.length > 0 && (
+        {effectiveConfigKeys.length > 0 && (
           <div>
             <p className="mb-2 text-sm font-medium">Required configuration</p>
             <div className="space-y-3">
-              {provider.required_config.map((key) => (
+              {effectiveConfigKeys.map((key) => (
                 <Input
                   key={key}
                   label={key}
@@ -345,6 +354,12 @@ function hintFor(key: string): string {
     pipeline_id: 'Numeric pipeline id from HubSpot',
     region: 'us | eu | in | au | cn | jp',
     module: 'desk | crm',
+    jira_url: 'https://your-domain.atlassian.net',
+    jira_email: 'your-email@example.com',
+    jira_api_token: 'ATATT...',
+    instance: 'https://dev12345.service-now.com',
+    username: 'admin',
+    password: 'password123',
   };
   return hints[key] ?? '';
 }
