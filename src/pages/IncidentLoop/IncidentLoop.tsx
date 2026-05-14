@@ -186,9 +186,9 @@ export default function IncidentLoop() {
                       </div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">3 Agents Active</span>
                     </div>
-                    <button className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">
+                    {/* <button className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">
                       View Audit Log
-                    </button>
+                    </button> */}
                   </div>
                 </div>
              </div>
