@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { StatusBadge, PriorityBadge } from '@/components/shared/StatusBadges';
+import { StatusBadge, PriorityBadge, SourceBadge } from '@/components/shared/StatusBadges';
 import { CreateIncidentModal } from './CreateIncidentModal';
 import { useDebounce } from '@/hooks/useDebounce';
 import { incidentApi } from '@/services/api/endpoints';
@@ -212,6 +212,7 @@ export default function IncidentQueue() {
                         </div>
                       </TH>
                       <TH className="px-4 py-3">Status</TH>
+                      <TH className="px-4 py-3">Source</TH>
                       <TH className="px-4 py-3">Category</TH>
                       <TH className="px-4 py-3">Caller</TH>
                       <TH className="text-right px-4 py-3">Confidence</TH>
@@ -251,6 +252,9 @@ export default function IncidentQueue() {
                         </TD>
                         <TD className="px-4 py-4">
                           <StatusBadge status={inc.status} />
+                        </TD>
+                        <TD className="px-4 py-4">
+                          <SourceBadge source={inc.source} />
                         </TD>
                         <TD className="text-sm text-muted-foreground px-4 py-4 whitespace-nowrap">{inc.category}</TD>
                         <TD className="text-sm px-4 py-4 whitespace-nowrap">{inc.caller}</TD>

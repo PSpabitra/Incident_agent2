@@ -48,10 +48,10 @@ const navItems: NavItem[] = [
     label: "Knowledge Base",
     icon: BookOpen,
   },
-  { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
+  // { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
    {
     to: appConfig.routes.incidentLoop,
-    label: "Incident Loop",
+    label: "Incident Timeline",
     icon: RotateCcw,
   },
   {
