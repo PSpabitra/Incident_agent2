@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Filter, Plus, Search, Inbox } from 'lucide-react';
+import { Filter, Plus, Search, Inbox, ArrowUpDown, ArrowUp, ArrowDown, SortAsc, SortDesc } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -20,6 +20,8 @@ export default function IncidentQueue() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [createOpen, setCreateOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
@@ -31,10 +33,45 @@ export default function IncidentQueue() {
         search: debouncedSearch || undefined,
         status: status || undefined,
         priority: priority || undefined,
-        pageSize: 50,
+        pageSize: 100, // Fetch more items for better frontend sorting
       }),
     refetchInterval: 15_000,
   });
+
+  const sortedItems = useMemo(() => {
+    if (!data?.items) return [];
+    
+    return [...data.items].sort((a, b) => {
+      let v1: any = (a as any)[sortBy] ?? '';
+      let v2: any = (b as any)[sortBy] ?? '';
+
+      // Priority weight mapping
+      if (sortBy === 'priority') {
+        const weights: Record<string, number> = { 'P1': 4, 'P2': 3, 'P3': 2, 'P4': 1 };
+        v1 = weights[v1] || 0;
+        v2 = weights[v2] || 0;
+      }
+      
+      // Date handling
+      if (sortBy === 'createdAt') {
+        v1 = new Date(v1).getTime();
+        v2 = new Date(v2).getTime();
+      }
+
+      if (v1 < v2) return sortOrder === 'asc' ? -1 : 1;
+      if (v1 > v2) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [data?.items, sortBy, sortOrder]);
+
+  const toggleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
 
   return (
     <PageWrapper
@@ -78,6 +115,27 @@ export default function IncidentQueue() {
               ]}
               containerClassName="min-w-[140px]"
             />
+            <div className="h-8 w-px bg-border mx-1" />
+            <Select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              options={[
+                { value: 'createdAt', label: 'Sort: Created' },
+                { value: 'priority', label: 'Sort: Priority' },
+                { value: 'status', label: 'Sort: Status' },
+                { value: 'id', label: 'Sort: ID' },
+              ]}
+              containerClassName="min-w-[150px]"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              className="h-10 w-10 shrink-0"
+              title={sortOrder === 'asc' ? 'Sort Ascending' : 'Sort Descending'}
+            >
+              {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
             <Button
               variant="outline"
               leftIcon={<Filter className="h-4 w-4" />}
@@ -85,6 +143,8 @@ export default function IncidentQueue() {
                 setStatus('');
                 setPriority('');
                 setSearch('');
+                setSortBy('createdAt');
+                setSortOrder('desc');
               }}
             >
               Clear
@@ -105,18 +165,54 @@ export default function IncidentQueue() {
             <Table>
               <THead>
                 <TR>
-                  <TH>ID</TH>
+                  <TH 
+                    className="cursor-pointer hover:text-foreground transition-colors group"
+                    onClick={() => toggleSort('id')}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      ID
+                      {sortBy === 'id' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      )}
+                    </div>
+                  </TH>
                   <TH>Subject</TH>
-                  <TH>Priority</TH>
+                  <TH 
+                    className="cursor-pointer hover:text-foreground transition-colors group"
+                    onClick={() => toggleSort('priority')}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      PRIORITY
+                      {sortBy === 'priority' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      )}
+                    </div>
+                  </TH>
                   <TH>Status</TH>
                   <TH>Category</TH>
                   <TH>Caller</TH>
                   <TH className="text-right">Confidence</TH>
-                  <TH className="text-right">Created</TH>
+                  <TH 
+                    className="text-right cursor-pointer hover:text-foreground transition-colors group"
+                    onClick={() => toggleSort('createdAt')}
+                  >
+                    <div className="flex items-center justify-end gap-1.5">
+                      CREATED
+                      {sortBy === 'createdAt' ? (
+                        sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                      ) : (
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                      )}
+                    </div>
+                  </TH>
                 </TR>
               </THead>
               <TBody>
-                {data.items.map((inc) => (
+                {sortedItems.map((inc) => (
                   <TR key={inc.id} className="cursor-pointer">
                     <TD className="font-mono text-xs text-muted-foreground">
                       <Link to={`/incidents/${inc.id}`} className="hover:text-primary">
