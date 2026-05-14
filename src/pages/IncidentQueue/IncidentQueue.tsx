@@ -272,9 +272,9 @@ export default function IncidentQueue() {
                 </div>
 
                 {/* Pagination Footer */}
-                <div className="p-4 border-t border-border flex items-center justify-between bg-white flex-none">
+                <div className="p-6 border-t border-border flex items-center justify-between bg-white flex-none">
                   <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                    Page {page} of {Math.ceil((data?.total || 0) / 5)} — {(data?.total || 0)} Total
+                    Page {page} of {Math.ceil((data?.total || 0) / 6)} — {(data?.total || 0)} Total
                   </div>
                   <div className="flex items-center gap-2">
                     <Button

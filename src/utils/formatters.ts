@@ -3,8 +3,10 @@
  * Pure functions — safe to use anywhere, fully tree-shakeable.
  */
 
-export function formatRelativeTime(input: string | Date): string {
+export function formatRelativeTime(input: string | Date | undefined | null): string {
+  if (!input) return '—';
   const date = typeof input === 'string' ? new Date(input) : input;
+  if (isNaN(date.getTime())) return '—';
   const diffMs = Date.now() - date.getTime();
   const diffSec = Math.round(diffMs / 1000);
 
@@ -20,8 +22,10 @@ export function formatRelativeTime(input: string | Date): string {
   });
 }
 
-export function formatDateTime(input: string | Date): string {
+export function formatDateTime(input: string | Date | undefined | null): string {
+  if (!input) return '—';
   const date = typeof input === 'string' ? new Date(input) : input;
+  if (isNaN(date.getTime())) return '—';
   return date.toLocaleString(undefined, {
     year: 'numeric',
     month: 'short',
