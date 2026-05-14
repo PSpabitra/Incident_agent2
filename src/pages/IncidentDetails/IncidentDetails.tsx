@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -9,13 +9,11 @@ import {
   Eye,
   Lightbulb,
   PlayCircle,
-  AlertOctagon,
   Workflow,
-  Mail,
 } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+// import { Button } from '@/components/ui/Button';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatusBadges';

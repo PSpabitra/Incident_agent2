@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, LogOut, Settings, User as UserIcon, Menu } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { appConfig } from '@/config/app.config';
-import { cn } from '@/utils/cn';
+// import { cn } from '@/utils/cn';
 
 interface HeaderProps {
   onMenuClick?: () => void;
