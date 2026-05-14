@@ -158,6 +158,21 @@ export const runbookApi = {
     );
     return data.data;
   },
+  async archive(id: string | number) {
+    const { data } = await apiClient.post<ApiResponse<Runbook>>(
+      `/runbooks/${id}/archive`,
+    );
+    return data.data;
+  },
+  async download(id: string | number) {
+    const response = await apiClient.get(`/runbooks/${id}/download`, {
+      responseType: 'blob',
+      headers: {
+        Accept: 'application/pdf, application/octet-stream, */*',
+      },
+    });
+    return response.data;
+  },
 };
 
 /** Knowledge Base =========================================================== */
