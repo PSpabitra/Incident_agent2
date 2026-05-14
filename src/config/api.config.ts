@@ -4,7 +4,7 @@
  */
 export const apiConfig = {
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30_000,
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT),
   retry: { attempts: 3, delayMs: 800 },
   endpoints: {
     auth: {
