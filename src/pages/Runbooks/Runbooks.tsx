@@ -18,16 +18,18 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { PageSpinner, Spinner } from '@/components/ui/Spinner';
 import { CreateContentModal } from '@/components/shared/CreateContentModal';
-import { Modal } from '@/components/ui/Modal';
+import { Sheet } from '@/components/ui/Sheet';
+import { FileText, Download, Archive, Edit3 } from 'lucide-react';
 import { runbookApi } from '@/services/api/endpoints';
 import { formatDuration, formatRelativeTime } from '@/utils/formatters';
 import { cn } from '@/utils/cn';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import type { Runbook } from '@/types';
 import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
+import { useToast } from '@/hooks/useToast';
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'PROCESSING' | 'FAILED' | 'ARCHIVED';
-type DetailTab = 'steps' | 'manual' | 'history';
+type DetailTab = 'steps' ;
 
 export default function Runbooks() {
   const [search, setSearch] = useState('');
@@ -37,6 +39,7 @@ export default function Runbooks() {
   const [selectedRunbook, setSelectedRunbook] = useState<Runbook | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>('steps');
   const [processedRunbook, setProcessedRunbook] = useState<Runbook | null>(null);
+  const { toast } = useToast();
 
   const queryClient = useQueryClient();
 
@@ -74,6 +77,44 @@ export default function Runbooks() {
       setProcessedRunbook(null);
     },
   });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: string | number) => runbookApi.archive(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
+      setSelectedRunbook(null);
+      toast.success('Runbook archived successfully');
+    },
+    onError: () => {
+      toast.error('Failed to archive runbook');
+    },
+  });
+
+  const handleDownloadTxt = (rb: Runbook) => {
+    const name = typeof rb.name === 'object' ? 'Runbook' : (rb.summary?.name || rb.name || 'Runbook');
+    const content = `
+RUNBOOK: ${name}
+CATEGORY: ${rb.summary?.category || rb.category || 'General'}
+UPDATED: ${rb.updatedAt || rb.lastUpdated || rb.createdAt || new Date().toISOString()}
+--------------------------------------------------
+DESCRIPTION:
+${renderDescription(rb)}
+
+STEPS:
+${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. ${s.title}${s.command ? `\n   Command: ${s.command}` : ''}`).join('\n\n')}
+`.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, '_')}_guide.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Guide downloaded in TXT format');
+  };
 
   const filtered = useMemo(() => {
     let list = data ?? [];
@@ -250,18 +291,19 @@ export default function Runbooks() {
 
         {/* Table View */}
         <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl">
-          <Table className="border-none">
-            <THead className="bg-slate-50/50 border-b border-slate-100">
-              <TR className="hover:bg-transparent border-none">
-                <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold">RUNBOOK</TH>
-                <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold">CATEGORY</TH>
-                <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold">SOURCE</TH>
-                <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center">CHUNKS</TH>
-                <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center">STATUS</TH>
-                <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold">UPDATED</TH>
-                <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right">ACTIONS</TH>
-              </TR>
-            </THead>
+          <div className="overflow-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+            <Table className="border-none border-separate border-spacing-0">
+              <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                <TR className="hover:bg-transparent border-none">
+                  <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">RUNBOOK</TH>
+                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CATEGORY</TH>
+                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">SOURCE</TH>
+                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CHUNKS</TH>
+                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">STATUS</TH>
+                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">UPDATED</TH>
+                  <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
+                </TR>
+              </THead>
             <TBody>
               {filtered.map((rb) => (
                 <TR key={rb.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
@@ -330,64 +372,87 @@ export default function Runbooks() {
               ))}
             </TBody>
           </Table>
-        </Card>
+        </div>
+      </Card>
       </div>
 
-      {/* Runbook Detail Modal */}
-      <Modal
+      {/* Runbook Detail Side Panel */}
+      <Sheet
         open={!!selectedRunbook}
         onClose={() => setSelectedRunbook(null)}
-        title={selectedRunbook ? (typeof selectedRunbook.name === 'object' ? 'Runbook Details' : (selectedRunbook.summary?.name || selectedRunbook.name || 'Runbook Details')) : ''}
-        description={selectedRunbook ? renderDescription(selectedRunbook) : ''}
         size="lg"
+        title={
+          selectedRunbook && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-200">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[9px] font-bold px-2 h-5 tracking-widest uppercase">
+                    {selectedRunbook.summary?.category || selectedRunbook.category || 'GENERAL'}
+                  </Badge>
+                 
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                  {typeof selectedRunbook.name === 'object' ? 'Runbook Details' : (selectedRunbook.summary?.name || selectedRunbook.name || 'Runbook Details')}
+                </h2>
+                <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
+                  Updated by <span className="text-slate-600 font-bold">{selectedRunbook.createdBy || 'system@agenticops.ai'}</span> · {formatRelativeTime(selectedRunbook.updatedAt || selectedRunbook.lastUpdated || new Date())}
+                </p>
+              </div>
+            </div>
+          )
+        }
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-[10px] font-bold tracking-widest h-9 px-4" 
+                leftIcon={<Archive className="h-3.5 w-3.5" />}
+                onClick={() => selectedRunbook && archiveMutation.mutate(selectedRunbook.id)}
+                isLoading={archiveMutation.isPending}
+              >
+                ARCHIVE
+              </Button>
+            </div>
+            <Button 
+              size="sm" 
+              className="bg-slate-900 text-white hover:bg-slate-800 text-[10px] font-bold tracking-widest h-10 px-6" 
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => selectedRunbook && handleDownloadTxt(selectedRunbook)}
+            >
+              DOWNLOAD GUIDE
+            </Button>
+          </div>
+        }
       >
         {selectedRunbook && (
           <div className="space-y-6">
-            <div className="flex border-b border-border">
-              {[
-                { id: 'steps', label: 'Steps', icon: BookOpen },
-                { id: 'manual', label: 'Manual', icon: Layers },
-                { id: 'history', label: 'History', icon: History },
-              ].map((tab) => {
-                // Only show Manual tab if we have rich description data
-                const hasRichData = 
-                  typeof selectedRunbook.summary === 'object' && 
-                  selectedRunbook.summary?.description && 
-                  typeof selectedRunbook.summary.description === 'object' &&
-                  Object.keys(selectedRunbook.summary.description).length > 2;
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Description</span>
+              <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                {renderDescription(selectedRunbook)}
+              </p>
+            </div>
 
-                if (tab.id === 'manual' && !hasRichData) return null;
-
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveDetailTab(tab.id as any)}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
-                      activeDetailTab === tab.id
-                        ? 'border-primary text-primary'
-                        : 'border-transparent text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    <tab.icon className="h-4 w-4" />
-                    {tab.label}
-                  </button>
-                );
-              })}
+            <div className="flex border-b border-slate-100">
+              <div className="flex items-center gap-2 px-4 py-3 text-[11px] font-bold border-b-2 border-slate-900 text-slate-900 tracking-widest uppercase">
+                <BookOpen className="h-3.5 w-3.5" />
+                Steps
+              </div>
             </div>
 
             <div className="py-2">
-              {activeDetailTab === 'steps' ? (
-                <StepsTab runbook={selectedRunbook} />
-              ) : activeDetailTab === 'manual' ? (
-                <ManualRichSummary data={selectedRunbook.summary?.description as any} />
-              ) : (
-                <HistoryTab runbookId={selectedRunbook.id} />
-              )}
+              <StepsTab runbook={selectedRunbook} />
             </div>
           </div>
         )}
-      </Modal>
+      </Sheet>
 
       <CreateContentModal
         isOpen={isModalOpen}
