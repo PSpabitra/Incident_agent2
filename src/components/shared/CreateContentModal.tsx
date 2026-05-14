@@ -1,8 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, X, FileText, File as FileIcon, AlertCircle, CheckCircle2, Wand2, Plus, Trash2, ArrowLeft, Check } from 'lucide-react';
+import { Upload, X, FileText, File as FileIcon, AlertCircle, CheckCircle2, Wand2, Plus, Trash2, ArrowLeft, Check, LayoutGrid, List } from 'lucide-react';
+import { ManualRichSummary } from './ManualRichSummary';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
 
 interface CreateContentModalProps {
@@ -42,6 +44,7 @@ export function CreateContentModal({
   const [editCategory, setEditCategory] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editSteps, setEditSteps] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'edit' | 'preview'>('preview');
 
   useEffect(() => {
     if (processedData) {
@@ -144,6 +147,7 @@ export function CreateContentModal({
 
   const resetAndClose = () => {
     setFiles([]);
+    setActiveTab('preview');
     onClose();
   };
 
@@ -160,90 +164,141 @@ export function CreateContentModal({
       open={isOpen}
       onClose={resetAndClose}
       title={processedData ? "Review AI Suggestions" : `Create New ${type}`}
-      description={processedData ? "You can edit anything before it is indexed into the RAG store" : `Upload documents to train the AI agent on your ${type.toLowerCase()} procedures.`}
-      size={processedData ? "lg" : "md"}
+      description={processedData ? "AI has extracted the following details from your document." : `Upload documents to train the AI agent on your ${type.toLowerCase()} procedures.`}
+      size={processedData ? "xl" : "md"}
     >
       {processedData ? (
         <div className="space-y-6 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
-          {/* Form Header Icon */}
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white">
-              <Wand2 className="h-5 w-5 text-cyan-400" />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-lg shadow-slate-200">
+                <Wand2 className="h-5 w-5 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">AI Extraction Results</h3>
+                <p className="text-[11px] text-slate-500 font-medium">Verify and refine the extracted metadata for optimal RAG performance</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight">Review AI Suggestions</h3>
-              <p className="text-[11px] text-slate-500">Edit extracted metadata to ensure high-quality RAG indexing</p>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2 space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Title</label>
-              <input
-                type="text"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
-              <select
-                value={editCategory}
-                onChange={(e) => setEditCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50 cursor-pointer"
-              >
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
-            <textarea
-              rows={3}
-              value={editDescription}
-              onChange={(e) => setEditDescription(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50 resize-none"
-            />
-          </div>
-
-          {/* Steps List */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Steps (extracted by AI — edit as needed)
-              </label>
+            <div className="flex items-center bg-slate-100 p-1 rounded-lg">
               <button
-                type="button"
-                onClick={addStep}
-                className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                onClick={() => setActiveTab('preview')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                  activeTab === 'preview' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
               >
-                <Plus className="h-3 w-3" /> Add step
+                <LayoutGrid className="h-3 w-3" /> Preview
+              </button>
+              <button
+                onClick={() => setActiveTab('edit')}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider rounded-md transition-all",
+                  activeTab === 'edit' ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                )}
+              >
+                <List className="h-3 w-3" /> Edit
               </button>
             </div>
-            <div className="space-y-2">
-              {editSteps.map((step, idx) => (
-                <div key={idx} className="flex items-center gap-2 group">
-                  <span className="w-5 h-8 flex items-center justify-center text-[10px] font-bold text-slate-300 shrink-0 select-none">
-                    {idx + 1}.
-                  </span>
-                  <input
-                    type="text"
-                    value={step}
-                    onChange={(e) => updateStep(idx, e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-slate-400 bg-white"
-                    placeholder={`Step ${idx + 1}...`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeStep(idx)}
-                    className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className={cn("space-y-6", activeTab === 'preview' && "lg:block hidden")}>
+              {activeTab === 'edit' ? (
+                <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="md:col-span-2 space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Title</label>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Category</label>
+                      <select
+                        value={editCategory}
+                        onChange={(e) => setEditCategory(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50 cursor-pointer"
+                      >
+                        {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Description</label>
+                    <textarea
+                      rows={4}
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:border-slate-400 bg-slate-50/50 resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Steps (extracted by AI)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={addStep}
+                        className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                      >
+                        <Plus className="h-3 w-3" /> Add step
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {editSteps.map((step, idx) => (
+                        <div key={idx} className="flex items-center gap-2 group">
+                          <span className="w-5 h-8 flex items-center justify-center text-[10px] font-bold text-slate-300 shrink-0 select-none">
+                            {idx + 1}.
+                          </span>
+                          <input
+                            type="text"
+                            value={step}
+                            onChange={(e) => updateStep(idx, e.target.value)}
+                            className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-slate-400 bg-white"
+                            placeholder={`Step ${idx + 1}...`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeStep(idx)}
+                            className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              ))}
+              ) : (
+                <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-100 animate-in fade-in slide-in-from-right-2 duration-300 overflow-y-auto max-h-[60vh] custom-scrollbar">
+                   <ManualRichSummary 
+                    data={processedData?.summary?.description || processedData?.description || {}} 
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className={cn("hidden lg:block", activeTab === 'edit' && "lg:block")}>
+               <div className="sticky top-0 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col max-h-[60vh]">
+                <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Wand2 className="h-3.5 w-3.5 text-cyan-500" /> AI Visual Preview
+                  </span>
+                  <Badge variant="success" className="text-[9px] font-bold tracking-tighter">RICH VIEW</Badge>
+                </div>
+                <div className="p-6 overflow-y-auto custom-scrollbar bg-white">
+                  <ManualRichSummary 
+                    data={processedData?.summary?.description || processedData?.description || {}} 
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
