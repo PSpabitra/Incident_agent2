@@ -13,6 +13,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/utils/cn";
@@ -36,6 +37,11 @@ const navItems: NavItem[] = [
     icon: Inbox,
     badge: "live",
   },
+  // {
+  //   to: appConfig.routes.incidentLoop,
+  //   label: "Incident Loop",
+  //   icon: RotateCcw,
+  // },
   { to: appConfig.routes.runbooks, label: "Runbooks", icon: GitBranch },
   {
     to: appConfig.routes.knowledgeBase,
@@ -43,6 +49,11 @@ const navItems: NavItem[] = [
     icon: BookOpen,
   },
   { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
+   {
+    to: appConfig.routes.incidentLoop,
+    label: "Incident Loop",
+    icon: RotateCcw,
+  },
   {
     to: appConfig.routes.escalations,
     label: "Escalations",

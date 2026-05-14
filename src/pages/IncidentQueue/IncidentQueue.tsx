@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { Badge } from '@/components/ui/Badge';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { EmptyState } from '@/components/shared/EmptyState';
@@ -27,13 +28,15 @@ export default function IncidentQueue() {
   const debouncedSearch = useDebounce(search, 300);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['incidents', { debouncedSearch, status, priority }],
+    queryKey: ['incidents', { debouncedSearch, status, priority, sortBy, sortOrder }],
     queryFn: () =>
       incidentApi.list({
         search: debouncedSearch || undefined,
         status: status || undefined,
         priority: priority || undefined,
-        pageSize: 100,
+        pageSize: 5,
+        sortBy,
+        sortOrder,
       }),
     refetchInterval: 15_000,
   });
@@ -76,6 +79,14 @@ export default function IncidentQueue() {
       title="Incident Queue"
       description="All incidents ingested by the agent — auto-refreshing every 15s."
       noScroll
+      actions={
+        <div className="flex items-center gap-2">
+          <Badge variant="success" className="gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 border-emerald-100">
+            <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            LIVE
+          </Badge>
+        </div>
+      }
     >
       <div className="h-full flex flex-col space-y-6 overflow-hidden">
         

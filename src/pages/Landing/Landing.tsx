@@ -272,7 +272,7 @@ const flowSteps = [
     icon: Brain,
     title: 'Agentic analysis',
     body:
-      'The LLM reads the description and emits a structured JSON: root cause hypothesis, confidence, ordered resolution steps, and whether the fix is safe to run unattended.',
+      'The AI agent reads the description and emits a structured JSON: root cause hypothesis, confidence, ordered resolution steps, and whether the fix is safe to run unattended.',
   },
   {
     icon: Network,

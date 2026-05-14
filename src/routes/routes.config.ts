@@ -30,6 +30,11 @@ export const routesConfig: RouteDefinition[] = [
     isPublic: false,
   },
   {
+    path: appConfig.routes.incidentLoop,
+    Component: lazy(() => import('@/pages/IncidentLoop')),
+    isPublic: false,
+  },
+  {
     path: '/incidents/:id',
     Component: lazy(() => import('@/pages/IncidentDetails')),
     isPublic: false,
