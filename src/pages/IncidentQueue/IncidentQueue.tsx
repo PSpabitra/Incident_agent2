@@ -14,7 +14,7 @@ import { StatusBadge, PriorityBadge } from '@/components/shared/StatusBadges';
 import { CreateIncidentModal } from './CreateIncidentModal';
 import { useDebounce } from '@/hooks/useDebounce';
 import { incidentApi } from '@/services/api/endpoints';
-import { formatRelativeTime, truncate } from '@/utils/formatters';
+import { formatDateTime, truncate } from '@/utils/formatters';
 
 export default function IncidentQueue() {
   const [search, setSearch] = useState('');
@@ -238,8 +238,8 @@ export default function IncidentQueue() {
                     <TD className="text-right tabular-nums text-sm font-medium">
                       {Math.round(inc.confidence * 100)}%
                     </TD>
-                    <TD className="text-right text-xs text-muted-foreground">
-                      {formatRelativeTime(inc.createdAt)}
+                    <TD className="text-right text-[11px] text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(inc.createdAt)}
                     </TD>
                   </TR>
                 ))}
