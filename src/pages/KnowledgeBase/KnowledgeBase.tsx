@@ -75,6 +75,7 @@ export default function KnowledgeBase() {
           </Button>
         </div>
       }
+    >
       <CreateContentModal
         isOpen={isModalOpen}
         type={modalType}

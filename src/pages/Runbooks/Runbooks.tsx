@@ -63,9 +63,27 @@ export default function Runbooks() {
     },
   });
 
-  const handleCreate = async (data: { files: File[] }) => {
-    if (data.files.length > 0) {
-      uploadMutation.mutate(data.files);
+  const handleCreate = async (formData: { files: File[] }) => {
+    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+    const ALLOWED_TYPES = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    const invalidFiles = formData.files.filter(file => 
+      !ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE
+    );
+
+    if (invalidFiles.length > 0) {
+      error(
+        'Invalid Files',
+        'Only PDF and DOCX files are allowed, and must be under 20MB.'
+      );
+      return;
+    }
+
+    if (formData.files.length > 0) {
+      uploadMutation.mutate(formData.files);
     }
   };
 
