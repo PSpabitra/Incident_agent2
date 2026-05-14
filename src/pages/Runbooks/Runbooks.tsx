@@ -62,11 +62,20 @@ export default function Runbooks() {
     if (search) {
       const s = search.toLowerCase();
       list = list.filter((rb) => {
-        const name = typeof rb.name === 'object' ? (rb.summary?.name || '') : (rb.name || '');
-        const summaryName = rb.summary?.name || '';
-        const category = rb.summary?.category || (typeof rb.category === 'string' ? rb.category : '');
-        const desc = typeof rb.description === 'object' ? (rb.summary?.description || '') : (rb.description || '');
-        const summaryDesc = rb.summary?.description || rb.summary?.summary || '';
+        const nameRaw = typeof rb.name === 'object' ? (rb.summary?.name || '') : (rb.name || '');
+        const name = typeof nameRaw === 'string' ? nameRaw : '';
+        
+        const summaryNameRaw = rb.summary?.name || '';
+        const summaryName = typeof summaryNameRaw === 'string' ? summaryNameRaw : '';
+        
+        const categoryRaw = rb.summary?.category || (typeof rb.category === 'string' ? rb.category : '');
+        const category = typeof categoryRaw === 'string' ? categoryRaw : '';
+        
+        const descRaw = typeof rb.description === 'object' ? (rb.summary?.description || '') : (rb.description || '');
+        const desc = typeof descRaw === 'string' ? descRaw : '';
+        
+        const summaryDescRaw = rb.summary?.description || rb.summary?.summary || '';
+        const summaryDesc = typeof summaryDescRaw === 'string' ? summaryDescRaw : '';
 
         return (
           name.toLowerCase().includes(s) ||
