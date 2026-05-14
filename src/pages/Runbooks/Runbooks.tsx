@@ -24,9 +24,10 @@ import { formatDuration, formatRelativeTime } from '@/utils/formatters';
 import { cn } from '@/utils/cn';
 import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import type { Runbook } from '@/types';
+import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'PROCESSING' | 'FAILED' | 'ARCHIVED';
-type DetailTab = 'steps' | 'history';
+type DetailTab = 'steps' | 'manual' | 'history';
 
 export default function Runbooks() {
   const [search, setSearch] = useState('');
@@ -35,6 +36,7 @@ export default function Runbooks() {
   const [modalType, setModalType] = useState<'Runbook' | 'Article'>('Runbook');
   const [selectedRunbook, setSelectedRunbook] = useState<Runbook | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>('steps');
+  const [processedRunbook, setProcessedRunbook] = useState<Runbook | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -45,9 +47,16 @@ export default function Runbooks() {
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => runbookApi.upload(files),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['runbooks'] });
-      setIsModalOpen(false);
+      // The API returns the array directly because we return data.data from the endpoint helper
+      if (Array.isArray(data) && data.length > 0) {
+        setProcessedRunbook(data[0]);
+      } else if (data && !Array.isArray(data)) {
+        setProcessedRunbook(data);
+      } else {
+        setIsModalOpen(false);
+      }
     },
   });
 
@@ -56,6 +65,15 @@ export default function Runbooks() {
       uploadMutation.mutate(data.files);
     }
   };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string | number; payload: any }) => runbookApi.update(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
+      setIsModalOpen(false);
+      setProcessedRunbook(null);
+    },
+  });
 
   const filtered = useMemo(() => {
     let list = data ?? [];
@@ -328,27 +346,41 @@ export default function Runbooks() {
             <div className="flex border-b border-border">
               {[
                 { id: 'steps', label: 'Steps', icon: BookOpen },
+                { id: 'manual', label: 'Manual', icon: Layers },
                 { id: 'history', label: 'History', icon: History },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveDetailTab(tab.id as DetailTab)}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
-                    activeDetailTab === tab.id
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <tab.icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              ))}
+              ].map((tab) => {
+                // Only show Manual tab if we have rich description data
+                const hasRichData = 
+                  typeof selectedRunbook.summary === 'object' && 
+                  selectedRunbook.summary?.description && 
+                  typeof selectedRunbook.summary.description === 'object' &&
+                  Object.keys(selectedRunbook.summary.description).length > 2;
+
+                if (tab.id === 'manual' && !hasRichData) return null;
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveDetailTab(tab.id as any)}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors border-b-2',
+                      activeDetailTab === tab.id
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="py-2">
               {activeDetailTab === 'steps' ? (
                 <StepsTab runbook={selectedRunbook} />
+              ) : activeDetailTab === 'manual' ? (
+                <ManualRichSummary data={selectedRunbook.summary?.description as any} />
               ) : (
                 <HistoryTab runbookId={selectedRunbook.id} />
               )}
@@ -360,9 +392,18 @@ export default function Runbooks() {
       <CreateContentModal
         isOpen={isModalOpen}
         type={modalType}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setProcessedRunbook(null);
+        }}
         onSubmit={handleCreate}
+        onUpdate={(id, data) => updateMutation.mutate({ id, payload: data })}
         isLoading={uploadMutation.isPending}
+        isUpdating={updateMutation.isPending}
+        processedData={processedRunbook}
+        onReset={() => {
+          setProcessedRunbook(null);
+        }}
       />
     </PageWrapper>
   );

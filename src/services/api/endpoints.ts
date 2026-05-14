@@ -151,6 +151,13 @@ export const runbookApi = {
     );
     return data.data;
   },
+  async update(id: string | number, payload: Partial<Runbook>) {
+    const { data } = await apiClient.patch<ApiResponse<Runbook>>(
+      apiConfig.endpoints.runbooks.update(id.toString()),
+      payload,
+    );
+    return data.data;
+  },
 };
 
 /** Knowledge Base =========================================================== */
@@ -185,6 +192,13 @@ export const kbApi = {
           'Content-Type': 'multipart/form-data',
         },
       },
+    );
+    return data.data;
+  },
+  async update(id: string | number, payload: Partial<KBArticle>) {
+    const { data } = await apiClient.patch<ApiResponse<KBArticle>>(
+      apiConfig.endpoints.knowledgeBase.update(id.toString()),
+      payload,
     );
     return data.data;
   },

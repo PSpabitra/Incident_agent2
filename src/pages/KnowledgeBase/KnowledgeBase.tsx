@@ -13,11 +13,13 @@ import { CreateContentModal } from '@/components/shared/CreateContentModal';
 import { kbApi } from '@/services/api/endpoints';
 import { useDebounce } from '@/hooks/useDebounce';
 import { formatRelativeTime } from '@/utils/formatters';
+import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
 
 export default function KnowledgeBase() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'Runbook' | 'Article'>('Article');
+  const [processedArticle, setProcessedArticle] = useState<any>(null);
   const queryClient = useQueryClient();
   const debouncedSearch = useDebounce(search, 300);
 
@@ -28,9 +30,15 @@ export default function KnowledgeBase() {
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => kbApi.upload(files),
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['kb'] });
-      setIsModalOpen(false);
+      if (Array.isArray(data) && data.length > 0) {
+        setProcessedArticle(data[0]);
+      } else if (data && !Array.isArray(data)) {
+        setProcessedArticle(data);
+      } else {
+        setIsModalOpen(false);
+      }
     },
   });
 
@@ -39,6 +47,15 @@ export default function KnowledgeBase() {
       uploadMutation.mutate(data.files);
     }
   };
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string | number; payload: any }) => kbApi.update(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb'] });
+      setIsModalOpen(false);
+      setProcessedArticle(null);
+    },
+  });
 
   return (
     <PageWrapper
@@ -58,13 +75,21 @@ export default function KnowledgeBase() {
           </Button>
         </div>
       }
-    >
       <CreateContentModal
         isOpen={isModalOpen}
         type={modalType}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setProcessedArticle(null);
+        }}
         onSubmit={handleCreate}
+        onUpdate={(id, data) => updateMutation.mutate({ id, payload: data })}
         isLoading={uploadMutation.isPending}
+        isUpdating={updateMutation.isPending}
+        processedData={processedArticle}
+        onReset={() => {
+          setProcessedArticle(null);
+        }}
       />
 
       <Card className="mb-6">
@@ -110,10 +135,17 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
     }
   }, [article.summary?.summary]);
 
+  const hasRichDescription = 
+    typeof article.summary === 'object' && 
+    article.summary?.description && 
+    typeof article.summary.description === 'object' &&
+    Object.keys(article.summary.description).length > 2; // More than just approvals/verification
+
   const hasExtraSteps =
     typeof article.summary === 'object' && (
       ((article.summary.description as any)?.approvals || []).length > 0 ||
-      ((article.summary.description as any)?.verification || []).length > 0
+      ((article.summary.description as any)?.verification || []).length > 0 ||
+      hasRichDescription
     );
 
   const showButton = isExpanded || isClamped || hasExtraSteps;
@@ -124,7 +156,7 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.03 }}
     >
-      <Card className="max-h-[500px] overflow-y-auto flex flex-col cursor-pointer group">
+      <Card className="max-h-[600px] overflow-y-auto flex flex-col cursor-pointer group">
         <CardContent className="flex-1 flex flex-col">
           <div className="flex items-center justify-between mb-2">
             <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
@@ -160,25 +192,31 @@ function KnowledgeBaseCard({ article, idx }: { article: any; idx: number }) {
                 </div>
 
                 {isExpanded && (
-                  <div className="pt-2 grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                    {((article.summary.description as any).approvals || []).length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Approvals Required</p>
-                        <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
-                          {(article.summary.description as any).approvals.map((item: string, i: number) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    {((article.summary.description as any).verification || []).length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Verification Steps</p>
-                        <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
-                          {(article.summary.description as any).verification.map((item: string, i: number) => (
-                            <li key={i}>{item}</li>
-                          ))}
-                        </ul>
+                  <div className="pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {hasRichDescription ? (
+                      <ManualRichSummary data={article.summary.description} className="mt-4" />
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3">
+                        {((article.summary.description as any).approvals || []).length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Approvals Required</p>
+                            <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
+                              {(article.summary.description as any).approvals.map((item: string, i: number) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {((article.summary.description as any).verification || []).length > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[10px] font-bold text-foreground uppercase tracking-tight">Verification Steps</p>
+                            <ul className="text-[10px] text-muted-foreground space-y-0.5 list-disc pl-3">
+                              {(article.summary.description as any).verification.map((item: string, i: number) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
