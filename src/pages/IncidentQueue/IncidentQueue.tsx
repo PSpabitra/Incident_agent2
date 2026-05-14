@@ -23,20 +23,20 @@ export default function IncidentQueue() {
   const [priority, setPriority] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['incidents', { debouncedSearch, status, priority }],
+    queryKey: ['incidents', { debouncedSearch, status, priority, page }],
     queryFn: () =>
       incidentApi.list({
         search: debouncedSearch || undefined,
         status: status || undefined,
         priority: priority || undefined,
-        pageSize: 5,
-        // sortBy,
-        // sortOrder,
+        pageSize: 6,
+        page,
       }),
     refetchInterval: 15_000,
   });
@@ -180,95 +180,124 @@ export default function IncidentQueue() {
                 description="Try adjusting your filters or create a new incident."
               />
             ) : (
-              <div className="flex-1 overflow-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-                <Table className="border-none border-separate border-spacing-0">
-                  <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
-                    <TR>
-                      <TH 
-                        className="cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
-                        onClick={() => toggleSort('id')}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          ID
-                          {sortBy === 'id' ? (
-                            sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-                          )}
-                        </div>
-                      </TH>
-                      <TH className="px-4 py-3">Subject</TH>
-                      <TH
-                        className="cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
-                        onClick={() => toggleSort('priority')}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          PRIORITY
-                          {sortBy === 'priority' ? (
-                            sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-                          )}
-                        </div>
-                      </TH>
-                      <TH className="px-4 py-3">Status</TH>
-                      <TH className="px-4 py-3">Source</TH>
-                      <TH className="px-4 py-3">Category</TH>
-                      <TH className="px-4 py-3">Caller</TH>
-                      <TH className="text-right px-4 py-3">Confidence</TH>
-                      <TH
-                        className="text-right cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
-                        onClick={() => toggleSort('createdAt')}
-                      >
-                        <div className="flex items-center justify-end gap-1.5">
-                          CREATED
-                          {sortBy === 'createdAt' ? (
-                            sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                          ) : (
-                            <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-                          )}
-                        </div>
-                      </TH>
-                    </TR>
-                  </THead>
-                  <TBody>
-                    {sortedItems.map((inc) => (
-                      <TR key={inc.id} className="cursor-pointer hover:bg-slate-50/50 transition-colors">
-                        <TD className="font-mono text-xs text-muted-foreground px-4 py-4">
-                          <Link to={`/incidents/${inc.id}`} className="hover:text-primary">
-                            {inc.id}
-                          </Link>
-                        </TD>
-                        <TD className="px-4 py-4">
-                          <Link
-                            to={`/incidents/${inc.id}`}
-                            className="font-medium hover:text-primary block"
-                          >
-                            {truncate(inc.subject, 60)}
-                          </Link>
-                        </TD>
-                        <TD className="px-4 py-4">
-                          <PriorityBadge priority={inc.priority} />
-                        </TD>
-                        <TD className="px-4 py-4">
-                          <StatusBadge status={inc.status} />
-                        </TD>
-                        <TD className="px-4 py-4">
-                          <SourceBadge source={inc.source} />
-                        </TD>
-                        <TD className="text-sm text-muted-foreground px-4 py-4 whitespace-nowrap">{inc.category}</TD>
-                        <TD className="text-sm px-4 py-4 whitespace-nowrap">{inc.caller}</TD>
-                        <TD className="text-right tabular-nums text-sm font-medium px-4 py-4">
-                          {Math.round(inc.confidence * 100)}%
-                        </TD>
-                        <TD className="text-right text-[11px] text-muted-foreground whitespace-nowrap px-4 py-4">
-                          {formatDateTime(inc.createdAt)}
-                        </TD>
+              <>
+                <div className="flex-1 overflow-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+                  <Table className="border-none border-separate border-spacing-0">
+                    <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                      <TR>
+                        <TH 
+                          className="cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
+                          onClick={() => toggleSort('id')}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            ID
+                            {sortBy === 'id' ? (
+                              sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                            )}
+                          </div>
+                        </TH>
+                        <TH className="px-4 py-3">Subject</TH>
+                        <TH
+                          className="cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
+                          onClick={() => toggleSort('priority')}
+                        >
+                          <div className="flex items-center gap-1.5">
+                            PRIORITY
+                            {sortBy === 'priority' ? (
+                              sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                            )}
+                          </div>
+                        </TH>
+                        <TH className="px-4 py-3">Status</TH>
+                        <TH className="px-4 py-3">Source</TH>
+                        <TH className="px-4 py-3">Category</TH>
+                        <TH className="px-4 py-3">Caller</TH>
+                        {/* <TH className="text-right px-4 py-3">Confidence</TH> */}
+                        <TH
+                          className="text-right cursor-pointer hover:text-foreground transition-colors group px-4 py-3"
+                          onClick={() => toggleSort('createdAt')}
+                        >
+                          <div className="flex items-center justify-end gap-1.5">
+                            CREATED
+                            {sortBy === 'createdAt' ? (
+                              sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                            )}
+                          </div>
+                        </TH>
                       </TR>
-                    ))}
-                  </TBody>
-                </Table>
-              </div>
+                    </THead>
+                    <TBody>
+                      {sortedItems.map((inc) => (
+                        <TR key={inc.id} className="cursor-pointer hover:bg-slate-50/50 transition-colors">
+                          <TD className="font-mono text-xs text-muted-foreground px-4 py-4">
+                            <Link to={`/incidents/${inc.id}`} className="hover:text-primary">
+                              {inc.id}
+                            </Link>
+                          </TD>
+                          <TD className="px-4 py-4">
+                            <Link
+                              to={`/incidents/${inc.id}`}
+                              className="font-medium hover:text-primary block"
+                            >
+                              {truncate(inc.subject, 60)}
+                            </Link>
+                          </TD>
+                          <TD className="px-4 py-4">
+                            <PriorityBadge priority={inc.priority} />
+                          </TD>
+                          <TD className="px-4 py-4">
+                            <StatusBadge status={inc.status} />
+                          </TD>
+                          <TD className="px-4 py-4">
+                            <SourceBadge source={inc.source} />
+                          </TD>
+                          <TD className="text-sm text-muted-foreground px-4 py-4 whitespace-nowrap">{inc.category}</TD>
+                          <TD className="text-sm px-4 py-4 whitespace-nowrap">{inc.caller}</TD>
+                          {/* <TD className="text-right tabular-nums text-sm font-medium px-4 py-4">
+                            {Math.round(inc.confidence * 100)}%
+                          </TD> */}
+                          <TD className="text-right text-[11px] text-muted-foreground whitespace-nowrap px-4 py-4">
+                            {formatDateTime(inc.createdAt)}
+                          </TD>
+                        </TR>
+                      ))}
+                    </TBody>
+                  </Table>
+                </div>
+
+                {/* Pagination Footer */}
+                <div className="p-4 border-t border-border flex items-center justify-between bg-white flex-none">
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                    Page {page} of {Math.ceil((data?.total || 0) / 5)} — {(data?.total || 0)} Total
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                      className="h-8 text-[10px] font-bold tracking-widest px-3 border-slate-200"
+                    >
+                      PREVIOUS
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => p + 1)}
+                      disabled={!data?.hasMore}
+                      className="h-8 text-[10px] font-bold tracking-widest px-3 border-slate-200"
+                    >
+                      NEXT
+                    </Button>
+                  </div>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

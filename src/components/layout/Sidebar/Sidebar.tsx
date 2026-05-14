@@ -60,8 +60,8 @@ const navItems: NavItem[] = [
     icon: AlertOctagon,
     roles: ["engineer", "admin"],
   },
-  { to: appConfig.routes.actions, label: "Automated Actions", icon: Activity },
-  { to: appConfig.routes.settings, label: "Settings", icon: Settings },
+  { to: appConfig.routes.actions, label: "Activity Logs", icon: Activity },
+  // { to: appConfig.routes.settings, label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -161,9 +161,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
               AI Agent Active
             </p>
           </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {/* <p className="text-[11px] leading-relaxed text-muted-foreground">
             5 agents online, monitoring 12 channels.
-          </p>
+          </p> */}
         </div>
       </div>
     </div>
