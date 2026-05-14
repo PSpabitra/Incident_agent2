@@ -8,3 +8,4 @@ export * from './Spinner';
 export * from './Avatar';
 export * from './Select';
 export * from './Table';
+export * from './Sheet';

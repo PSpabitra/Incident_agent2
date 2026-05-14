@@ -100,6 +100,9 @@ export interface Runbook {
   executionCount?: number;
   averageDurationSeconds?: number;
   isActive?: boolean;
+  status?: 'active' | 'archived' | 'processing' | 'failed';
+  url?: string;
+  file_path?: string;
   createdBy?: string;
   createdAt?: string;
   updatedAt?: string;
