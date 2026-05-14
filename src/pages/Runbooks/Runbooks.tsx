@@ -27,9 +27,10 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import type { Runbook } from '@/types';
 import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
 import { useToast } from '@/hooks/useToast';
+import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 
 type FilterTab = 'ALL' | 'ACTIVE' | 'PROCESSING' | 'FAILED' | 'ARCHIVED';
-type DetailTab = 'steps' ;
+type DetailTab = 'steps';
 
 export default function Runbooks() {
   const [search, setSearch] = useState('');
@@ -39,8 +40,11 @@ export default function Runbooks() {
   const [selectedRunbook, setSelectedRunbook] = useState<Runbook | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>('steps');
   const [processedRunbook, setProcessedRunbook] = useState<Runbook | null>(null);
-  const { success, error } = useToast();
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Runbook | null>(null);
+
+  const { success, error } = useToast();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery<Runbook[]>({
@@ -58,6 +62,19 @@ export default function Runbooks() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | number) => runbookApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      success('Runbook Deleted', 'The runbook has been permanently removed.');
+    },
+    onError: () => {
+      error('Delete Failed', 'Could not delete the runbook. Please try again.');
+    },
+  });
+
   const handleCreate = async (formData: { files: File[] }) => {
     const MAX_SIZE = 20 * 1024 * 1024; // 20MB
     const ALLOWED_TYPES = [
@@ -65,7 +82,7 @@ export default function Runbooks() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
-    const invalidFiles = formData.files.filter(file => 
+    const invalidFiles = formData.files.filter(file =>
       !ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE
     );
 
@@ -138,16 +155,16 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
       list = list.filter((rb) => {
         const nameRaw = typeof rb.name === 'object' ? (rb.summary?.name || '') : (rb.name || '');
         const name = typeof nameRaw === 'string' ? nameRaw : '';
-        
+
         const summaryNameRaw = rb.summary?.name || '';
         const summaryName = typeof summaryNameRaw === 'string' ? summaryNameRaw : '';
-        
+
         const categoryRaw = rb.summary?.category || (typeof rb.category === 'string' ? rb.category : '');
         const category = typeof categoryRaw === 'string' ? categoryRaw : '';
-        
+
         const descRaw = typeof rb.description === 'object' ? (rb.summary?.description || '') : (rb.description || '');
         const desc = typeof descRaw === 'string' ? descRaw : '';
-        
+
         const summaryDescRaw = rb.summary?.description || rb.summary?.summary || '';
         const summaryDesc = typeof summaryDescRaw === 'string' ? summaryDescRaw : '';
 
@@ -336,75 +353,81 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                     <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
                   </TR>
                 </THead>
-              <TBody>
-                {filtered.map((rb) => (
-                  <TR key={rb.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
-                    <TD className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-[15px] text-slate-800">
-                          {typeof rb.name === 'object' ? 'Unnamed Runbook' : (rb.summary?.name || rb.name || 'Unnamed Runbook')}
+                <TBody>
+                  {filtered.map((rb) => (
+                    <TR key={rb.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[15px] text-slate-800">
+                            {typeof rb.name === 'object' ? 'Unnamed Runbook' : (rb.summary?.name || rb.name || 'Unnamed Runbook')}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50/50 text-blue-600 border-blue-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter"
+                          >
+                            RAG
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
+                          {renderDescription(rb)}
+                        </p>
+                      </TD>
+                      <TD className="px-6 py-6">
+                        <span className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">
+                          {rb.summary?.category || rb.category || 'GENERAL'}
                         </span>
+                      </TD>
+                      <TD className="px-6 py-6">
                         <Badge
                           variant="outline"
-                          className="bg-blue-50/50 text-blue-600 border-blue-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter"
+                          className="text-[10px] font-bold text-slate-500 border-slate-200 bg-white"
                         >
-                          RAG
+                          PDF
                         </Badge>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
-                        {renderDescription(rb)}
-                      </p>
-                    </TD>
-                    <TD className="px-6 py-6">
-                      <span className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">
-                        {rb.summary?.category || rb.category || 'GENERAL'}
-                      </span>
-                    </TD>
-                    <TD className="px-6 py-6">
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] font-bold text-slate-500 border-slate-200 bg-white"
-                      >
-                        PDF
-                      </Badge>
-                    </TD>
-                    <TD className="px-6 py-6 text-center">
-                      <span className="text-sm font-bold text-slate-700">35</span>
-                    </TD>
-                    <TD className="px-6 py-6 text-center">
-                      <Badge
-                        variant={rb.isActive ? "success" : "muted"}
-                        className="text-[10px] font-bold uppercase tracking-widest px-2.5 h-6"
-                      >
-                        {rb.isActive ? "ACTIVE" : "INACTIVE"}
-                      </Badge>
-                    </TD>
-                    <TD className="px-6 py-6 whitespace-nowrap">
-                      <span className="text-[13px] text-slate-400 font-medium">
-                        {formatRelativeTime(rb.updatedAt || rb.lastUpdated || rb.createdAt || new Date())}
-                      </span>
-                    </TD>
-                    <TD className="px-8 py-6">
-                      <div className="flex items-center justify-end gap-5">
-                        <button 
-                          onClick={() => {
-                            setSelectedRunbook(rb);
-                            setActiveDetailTab('steps');
-                          }}
-                          className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors tracking-widest"
+                      </TD>
+                      <TD className="px-6 py-6 text-center">
+                        <span className="text-sm font-bold text-slate-700">35</span>
+                      </TD>
+                      <TD className="px-6 py-6 text-center">
+                        <Badge
+                          variant={rb.isActive ? "success" : "muted"}
+                          className="text-[10px] font-bold uppercase tracking-widest px-2.5 h-6"
                         >
-                          VIEW
-                        </button>
-                        <button className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </TD>
-                  </TR>
-                ))}
-              </TBody>
-            </Table>
-          </div>
+                          {rb.isActive ? "ACTIVE" : "INACTIVE"}
+                        </Badge>
+                      </TD>
+                      <TD className="px-6 py-6 whitespace-nowrap">
+                        <span className="text-[13px] text-slate-400 font-medium">
+                          {formatRelativeTime(rb.updatedAt || rb.lastUpdated || rb.createdAt || new Date())}
+                        </span>
+                      </TD>
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center justify-end gap-5">
+                          <button
+                            onClick={() => {
+                              setSelectedRunbook(rb);
+                              setActiveDetailTab('steps');
+                            }}
+                            className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors tracking-widest"
+                          >
+                            VIEW
+                          </button>
+                          <button
+                            onClick={() => {
+                              setItemToDelete(rb);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
           )}
         </Card>
 
@@ -426,7 +449,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                   <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[9px] font-bold px-2 h-5 tracking-widest uppercase">
                     {selectedRunbook.summary?.category || selectedRunbook.category || 'GENERAL'}
                   </Badge>
-                 
+
                 </div>
               </div>
               <div>
@@ -443,10 +466,10 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         footer={
           <div className="flex items-center justify-between w-full">
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-[10px] font-bold tracking-widest h-9 px-4" 
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[10px] font-bold tracking-widest h-9 px-4"
                 leftIcon={<Archive className="h-3.5 w-3.5" />}
                 onClick={() => selectedRunbook && handleArchive(selectedRunbook.id)}
                 disabled={!!(selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived'))}
@@ -454,9 +477,9 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                 {selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived') ? 'ARCHIVED' : 'ARCHIVE'}
               </Button>
             </div>
-            <Button 
-              size="sm" 
-              className="bg-blue-600 text-white hover:bg-blue-700 text-[10px] font-bold tracking-widest h-10 px-6 shadow-lg shadow-blue-100" 
+            <Button
+              size="sm"
+              className="bg-blue-600 text-white hover:bg-blue-700 text-[10px] font-bold tracking-widest h-10 px-6 shadow-lg shadow-blue-100"
               leftIcon={<Download className="h-4 w-4" />}
               onClick={() => selectedRunbook && handleDownloadTxt(selectedRunbook)}
             >
@@ -467,12 +490,12 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
       >
         {selectedRunbook && (
           <div className="space-y-8 pb-10">
-            <ManualRichSummary 
+            <ManualRichSummary
               data={
                 typeof selectedRunbook.description === 'object' && selectedRunbook.description !== null
                   ? (selectedRunbook.description as any)
                   : { overview: renderDescription(selectedRunbook) }
-              } 
+              }
             />
 
             <div className="space-y-6 pt-6 border-t border-slate-100">
@@ -485,6 +508,19 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
           </div>
         )}
       </Sheet>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={() => itemToDelete && deleteMutation.mutate(itemToDelete.id)}
+        isLoading={deleteMutation.isPending}
+        title="Delete Runbook?"
+        message={`Are you sure you want to delete "${typeof itemToDelete?.name === 'string' ? itemToDelete.name : (itemToDelete?.summary?.name || 'this runbook')}"? This action cannot be undone.`}
+        confirmLabel="Delete Permanently"
+      />
 
       <CreateContentModal
         isOpen={isModalOpen}
@@ -511,7 +547,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
 function StepsTab({ runbook }: { runbook: Runbook }) {
   const steps = runbook.steps || runbook.execution_steps || [];
   if (steps.length === 0) return <p className="text-sm text-muted-foreground py-4">No steps defined.</p>;
-  
+
   return (
     <ol className="space-y-3">
       {steps.map((step) => (

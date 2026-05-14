@@ -39,6 +39,7 @@ export const apiConfig = {
       search: '/kb/search',
       create: '/kb',
       update: (id: string) => `/kb/${id}`,
+      delete: (id: string) => `/kb/${id}`,
       upload: '/kb/upload',
     },
     escalations: {

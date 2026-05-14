@@ -27,6 +27,7 @@ import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import type { KBArticle } from '@/types';
 import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
 import { useToast } from '@/hooks/useToast';
+import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 
 type FilterTab = 'ALL' | 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
 
@@ -36,6 +37,10 @@ export default function KnowledgeBase() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType] = useState<'Article'>('Article');
   const [selectedArticle, setSelectedArticle] = useState<KBArticle | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<KBArticle | null>(null);
+
   const { success, error } = useToast();
 
   const queryClient = useQueryClient();
@@ -54,6 +59,19 @@ export default function KnowledgeBase() {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | number) => kbApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['kb'] });
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      success('Article Deleted', 'The article has been permanently removed.');
+    },
+    onError: () => {
+      error('Delete Failed', 'Could not delete the article. Please try again.');
+    },
+  });
+
   const handleCreate = async (formData: { files: File[] }) => {
     const MAX_SIZE = 20 * 1024 * 1024; // 20MB
     const ALLOWED_TYPES = [
@@ -61,7 +79,7 @@ export default function KnowledgeBase() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ];
 
-    const invalidFiles = formData.files.filter(file => 
+    const invalidFiles = formData.files.filter(file =>
       !ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE
     );
 
@@ -190,9 +208,9 @@ TAGS: ${article.tags?.join(', ') || 'None'}
     if (typeof s === 'object' && s !== null) {
       const obj = s as any;
       return ensureString(
-        obj.description || 
-        obj.summary || 
-        obj.overview || 
+        obj.description ||
+        obj.summary ||
+        obj.overview ||
         obj.overview_summary ||
         (Array.isArray(obj.key_features) ? obj.key_features.join(', ') : '')
       ) || 'No description available.';
@@ -355,7 +373,13 @@ TAGS: ${article.tags?.join(', ') || 'None'}
                           >
                             VIEW
                           </button>
-                          <button className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110">
+                          <button
+                            onClick={() => {
+                              setItemToDelete(article);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -441,6 +465,19 @@ TAGS: ${article.tags?.join(', ') || 'None'}
           </div>
         )}
       </Sheet>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={() => itemToDelete && deleteMutation.mutate(itemToDelete.id)}
+        isLoading={deleteMutation.isPending}
+        title="Delete Article?"
+        message={`Are you sure you want to delete "${ensureString(itemToDelete?.title) || 'this article'}"? This action cannot be undone.`}
+        confirmLabel="Delete Permanently"
+      />
 
       <CreateContentModal
         isOpen={isModalOpen}

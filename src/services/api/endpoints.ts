@@ -164,6 +164,12 @@ export const runbookApi = {
     );
     return data.data;
   },
+  async delete(id: string | number) {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+      apiConfig.endpoints.runbooks.delete(id.toString()),
+    );
+    return data.data;
+  },
   async download(id: string | number) {
     const response = await apiClient.get(`/runbooks/${id}/download`, {
       responseType: 'blob',
@@ -214,6 +220,12 @@ export const kbApi = {
     const { data } = await apiClient.patch<ApiResponse<KBArticle>>(
       apiConfig.endpoints.knowledgeBase.update(id.toString()),
       payload,
+    );
+    return data.data;
+  },
+  async delete(id: string | number) {
+    const { data } = await apiClient.delete<ApiResponse<void>>(
+      apiConfig.endpoints.knowledgeBase.delete(id.toString()),
     );
     return data.data;
   },

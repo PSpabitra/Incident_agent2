@@ -40,7 +40,7 @@ export default function IncidentQueue() {
 
   const sortedItems = useMemo(() => {
     if (!data?.items) return [];
-    
+
     return [...data.items].sort((a, b) => {
       let v1: any = (a as any)[sortBy] ?? '';
       let v2: any = (b as any)[sortBy] ?? '';
@@ -51,7 +51,7 @@ export default function IncidentQueue() {
         v1 = weights[v1] || 0;
         v2 = weights[v2] || 0;
       }
-      
+
       // Date handling
       if (sortBy === 'createdAt') {
         v1 = new Date(v1).getTime();
@@ -165,7 +165,7 @@ export default function IncidentQueue() {
             <Table>
               <THead>
                 <TR>
-                  <TH 
+                  <TH
                     className="cursor-pointer hover:text-foreground transition-colors group"
                     onClick={() => toggleSort('id')}
                   >
@@ -179,7 +179,7 @@ export default function IncidentQueue() {
                     </div>
                   </TH>
                   <TH>Subject</TH>
-                  <TH 
+                  <TH
                     className="cursor-pointer hover:text-foreground transition-colors group"
                     onClick={() => toggleSort('priority')}
                   >
@@ -196,7 +196,7 @@ export default function IncidentQueue() {
                   <TH>Category</TH>
                   <TH>Caller</TH>
                   <TH className="text-right">Confidence</TH>
-                  <TH 
+                  <TH
                     className="text-right cursor-pointer hover:text-foreground transition-colors group"
                     onClick={() => toggleSort('createdAt')}
                   >
