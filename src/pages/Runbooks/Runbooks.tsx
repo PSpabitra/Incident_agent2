@@ -433,23 +433,9 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
       >
         {selectedRunbook && (
           <div className="space-y-6">
-            <div className="flex flex-col gap-1">
-              <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">Description</span>
-              <p className="text-sm text-slate-600 leading-relaxed font-medium">
-                {renderDescription(selectedRunbook)}
-              </p>
-            </div>
-
-            <div className="flex border-b border-slate-100">
-              <div className="flex items-center gap-2 px-4 py-3 text-[11px] font-bold border-b-2 border-slate-900 text-slate-900 tracking-widest uppercase">
-                <BookOpen className="h-3.5 w-3.5" />
-                Steps
-              </div>
-            </div>
-
-            <div className="py-2">
-              <StepsTab runbook={selectedRunbook} />
-            </div>
+            <ManualRichSummary 
+              data={selectedRunbook.summary?.description || selectedRunbook.description || {}} 
+            />
           </div>
         )}
       </Sheet>
