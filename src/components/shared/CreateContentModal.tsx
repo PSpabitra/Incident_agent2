@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
+import { useToast } from '@/hooks/useToast';
 
 interface CreateContentModalProps {
   isOpen: boolean;
@@ -19,8 +20,9 @@ interface CreateContentModalProps {
   onReset?: () => void;
 }
 
-const SUPPORTED_FORMATS = ['.csv', '.txt', '.docx', '.pdf'];
+const SUPPORTED_FORMATS = ['.docx', '.pdf'];
 const ACCEPT_STR = SUPPORTED_FORMATS.join(',');
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 20MB
 
 const CATEGORIES = ['Git', 'Cloud', 'Infrastructure', 'Security', 'Database', 'Operations', 'Network'];
 
@@ -35,6 +37,7 @@ export function CreateContentModal({
   processedData = null,
   onReset,
 }: CreateContentModalProps) {
+  const { error } = useToast();
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,11 +86,30 @@ export function CreateContentModal({
   };
 
   const addFiles = (newFiles: File[]) => {
-    const validFiles = newFiles.filter((file) => {
+    const validFiles: File[] = [];
+    const errors: string[] = [];
+
+    newFiles.forEach((file) => {
       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      return SUPPORTED_FORMATS.includes(ext);
+      const isTypeValid = SUPPORTED_FORMATS.includes(ext);
+      const isSizeValid = file.size <= MAX_FILE_SIZE;
+
+      if (!isTypeValid) {
+        errors.push(`${file.name}: Only PDF and DOCX files are supported.`);
+      } else if (!isSizeValid) {
+        errors.push(`${file.name}: File exceeds 20MB limit.`);
+      } else {
+        validFiles.push(file);
+      }
     });
-    setFiles((prev) => [...prev, ...validFiles]);
+
+    if (errors.length > 0) {
+      error('File Validation Error', errors[0]);
+    }
+
+    if (validFiles.length > 0) {
+      setFiles((prev) => [...prev, ...validFiles]);
+    }
   };
 
   const removeFile = (index: number) => {
