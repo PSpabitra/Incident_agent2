@@ -39,7 +39,7 @@ export default function Runbooks() {
   const [selectedRunbook, setSelectedRunbook] = useState<Runbook | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>('steps');
   const [processedRunbook, setProcessedRunbook] = useState<Runbook | null>(null);
-  const { toast } = useToast();
+  const { success, error } = useToast();
 
   const queryClient = useQueryClient();
 
@@ -83,10 +83,10 @@ export default function Runbooks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runbooks'] });
       setSelectedRunbook(null);
-      toast.success('Runbook archived successfully');
+      success('Runbook archived successfully');
     },
     onError: () => {
-      toast.error('Failed to archive runbook');
+      error('Failed to archive runbook');
     },
   });
 
@@ -113,7 +113,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Guide downloaded in TXT format');
+    success('Guide downloaded in TXT format');
   };
 
   const filtered = useMemo(() => {
