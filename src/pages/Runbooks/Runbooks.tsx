@@ -50,16 +50,11 @@ export default function Runbooks() {
 
   const uploadMutation = useMutation({
     mutationFn: (files: File[]) => runbookApi.upload(files),
-    onSuccess: (data: any) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runbooks'] });
-      // The API returns the array directly because we return data.data from the endpoint helper
-      if (Array.isArray(data) && data.length > 0) {
-        setProcessedRunbook(data[0]);
-      } else if (data && !Array.isArray(data)) {
-        setProcessedRunbook(data);
-      } else {
-        setIsModalOpen(false);
-      }
+      setIsModalOpen(false);
+      setProcessedRunbook(null);
+      success('Upload Successful', 'Runbook uploaded and indexed successfully.');
     },
   });
 
@@ -96,17 +91,19 @@ export default function Runbooks() {
     },
   });
 
-  const archiveMutation = useMutation({
-    mutationFn: (id: string | number) => runbookApi.archive(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
-      setSelectedRunbook(null);
-      success('Runbook archived successfully');
-    },
-    onError: () => {
-      error('Failed to archive runbook');
-    },
+  const [archivedIds, setArchivedIds] = useState<Set<string | number>>(() => {
+    const saved = localStorage.getItem('archived_runbooks');
+    return new Set(saved ? JSON.parse(saved) : []);
   });
+
+  const handleArchive = (id: string | number) => {
+    const next = new Set(archivedIds);
+    next.add(id);
+    setArchivedIds(next);
+    localStorage.setItem('archived_runbooks', JSON.stringify(Array.from(next)));
+    setSelectedRunbook(null);
+    success('Runbook Archived', 'The runbook has been moved to archive locally.');
+  };
 
   const handleDownloadTxt = (rb: Runbook) => {
     const name = typeof rb.name === 'object' ? 'Runbook' : (rb.summary?.name || rb.name || 'Runbook');
@@ -163,11 +160,24 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         );
       });
     }
-    if (filterTab !== 'ALL') {
-      if (filterTab === 'ACTIVE') list = list.filter((rb) => rb.isActive);
+    if (filterTab === 'ALL') {
+      // Show everything except archived (local or backend)
+      list = list.filter((rb) => !archivedIds.has(rb.id) && rb.status !== 'archived');
+    } else if (filterTab === 'ARCHIVED') {
+      list = list.filter((rb) => archivedIds.has(rb.id) || rb.status === 'archived');
+    } else {
+      const statusMap: Record<FilterTab, string> = {
+        ALL: '',
+        ACTIVE: 'active',
+        PROCESSING: 'processing',
+        FAILED: 'failed',
+        ARCHIVED: 'archived',
+      };
+      // For specific status tabs, also exclude local archives
+      list = list.filter((rb) => (rb.status === statusMap[filterTab] || (filterTab === 'ACTIVE' && rb.isActive)) && !archivedIds.has(rb.id));
     }
     return list;
-  }, [data, search, filterTab]);
+  }, [data, search, filterTab, archivedIds]);
 
   const stats = [
     {
@@ -235,7 +245,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
             </Button>
             <Button
               size="sm"
-              className="bg-slate-900 text-white hover:bg-slate-800 font-bold text-[11px] tracking-widest h-10 px-5"
+              className="bg-blue-600 text-white hover:bg-blue-700 font-bold text-[11px] tracking-widest h-10 px-5 shadow-lg shadow-blue-100"
               leftIcon={<Plus className="h-4 w-4" />}
               onClick={() => {
                 setModalType('Runbook');
@@ -295,8 +305,8 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                     className={cn(
                       'px-4 py-1.5 text-[10px] font-bold rounded-lg transition-all whitespace-nowrap tracking-widest',
                       filterTab === tab
-                        ? 'bg-slate-900 text-white shadow-lg shadow-slate-200'
-                        : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50',
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-100'
+                        : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50/50',
                     )}
                   >
                     {tab}
@@ -403,7 +413,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
           selectedRunbook && (
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-200">
+                <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-100">
                   <FileText className="h-6 w-6" />
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -432,15 +442,15 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                 size="sm" 
                 className="text-[10px] font-bold tracking-widest h-9 px-4" 
                 leftIcon={<Archive className="h-3.5 w-3.5" />}
-                onClick={() => selectedRunbook && archiveMutation.mutate(selectedRunbook.id)}
-                isLoading={archiveMutation.isPending}
+                onClick={() => selectedRunbook && handleArchive(selectedRunbook.id)}
+                disabled={!!(selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived'))}
               >
-                ARCHIVE
+                {selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived') ? 'ARCHIVED' : 'ARCHIVE'}
               </Button>
             </div>
             <Button 
               size="sm" 
-              className="bg-slate-900 text-white hover:bg-slate-800 text-[10px] font-bold tracking-widest h-10 px-6" 
+              className="bg-blue-600 text-white hover:bg-blue-700 text-[10px] font-bold tracking-widest h-10 px-6 shadow-lg shadow-blue-100" 
               leftIcon={<Download className="h-4 w-4" />}
               onClick={() => selectedRunbook && handleDownloadTxt(selectedRunbook)}
             >
@@ -450,7 +460,7 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
         }
       >
         {selectedRunbook && (
-          <div className="space-y-6">
+          <div className="space-y-8 pb-10">
             <ManualRichSummary 
               data={
                 typeof selectedRunbook.description === 'object' && selectedRunbook.description !== null
@@ -458,6 +468,14 @@ ${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. $
                   : { overview: renderDescription(selectedRunbook) }
               } 
             />
+
+            <div className="space-y-6 pt-6 border-t border-slate-100">
+              <div className="flex items-center gap-2 px-0 py-1 text-[11px] font-bold text-slate-900 tracking-widest uppercase">
+                <BookOpen className="h-4 w-4 text-slate-800" />
+                Execution Steps
+              </div>
+              <StepsTab runbook={selectedRunbook} />
+            </div>
           </div>
         )}
       </Sheet>
@@ -492,13 +510,13 @@ function StepsTab({ runbook }: { runbook: Runbook }) {
     <ol className="space-y-3">
       {steps.map((step) => (
         <li key={step.order} className="flex gap-4 p-3 rounded-lg border border-slate-100 bg-slate-50/50">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-white text-[10px] font-bold">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-sm shadow-blue-100">
             {step.order}
           </span>
           <div className="flex-1">
             <p className="text-sm font-bold text-slate-800">{step.title}</p>
             {step.command && (
-              <pre className="mt-2 p-3 rounded bg-slate-900 text-slate-50 text-[11px] font-mono overflow-x-auto">
+              <pre className="mt-2 p-3 rounded bg-blue-950 text-blue-50 text-[11px] font-mono overflow-x-auto border border-blue-900/50">
                 {step.command}
               </pre>
             )}

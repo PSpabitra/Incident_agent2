@@ -35,7 +35,7 @@ const ManualRichSummary = ({ data, className }: ManualRichSummaryProps) => {
       {data.overview && (
         <div className="space-y-2">
           <h4 className="flex items-center gap-2 text-sm font-bold text-slate-800 uppercase tracking-tight">
-            <Info className="h-4 w-4 text-blue-500" /> Overview
+            <Info className="h-4 w-4 text-blue-500" /> Description
           </h4>
           <p className="text-sm text-slate-600 leading-relaxed italic border-l-2 border-blue-200 pl-3">
             {data.overview}
