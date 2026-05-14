@@ -87,9 +87,9 @@ export default function Landing() {
         {/* ----- Stats row ------------------------------------------------- */}
         <div className="mt-16 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {[
-            { label: 'Agents', value: '5' },
-            { label: 'Connectors', value: '5' },
-            { label: 'LLM-powered', value: 'Mistral' },
+            { label: 'Agents', value: '2' },
+            { label: 'Connectors', value: '2' },
+            { label: 'Ai-powered', value: 'Agentic Analysis' },
             { label: 'Auto-learning', value: 'Yes' },
           ].map((s) => (
             <div
@@ -121,8 +121,8 @@ export default function Landing() {
             />
             <Capability
               icon={Brain}
-              title="Mistral-powered triage"
-              body="Every incoming ticket gets analysed by Mistral. The LLM hypothesises a root cause, drafts resolution steps, and rates how safely they can be run unattended."
+              title="AI-powered triage"
+              body="Every incoming ticket gets analysed by AI. The AI agent hypothesises a root cause, drafts resolution steps, and rates how safely they can be run unattended."
             />
             <Capability
               icon={Workflow}
@@ -222,7 +222,7 @@ export default function Landing() {
       <footer className="border-t border-border py-6">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 text-xs text-muted-foreground sm:px-6">
           <span>© Intelligent Incident Agent</span>
-          <span>v1.0 — FastAPI · React 18 · MySQL · Celery · Mistral AI</span>
+          <span>v1.0 — FastAPI · React 18 · MySQL · Celery · Agentic AI</span>
         </div>
       </footer>
     </div>
@@ -270,7 +270,7 @@ const flowSteps = [
   },
   {
     icon: Brain,
-    title: 'Mistral analysis',
+    title: 'Agentic analysis',
     body:
       'The LLM reads the description and emits a structured JSON: root cause hypothesis, confidence, ordered resolution steps, and whether the fix is safe to run unattended.',
   },
