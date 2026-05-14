@@ -40,11 +40,7 @@ export default function IncidentQueue() {
     <PageWrapper
       title="Incident Queue"
       description="All incidents ingested by the agent — auto-refreshing every 15s."
-      actions={
-        <Button leftIcon={<Plus className="h-4 w-4" />} onClick={() => setCreateOpen(true)}>
-          New Incident
-        </Button>
-      }
+
     >
       <Card>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center px-4 py-3 border-b border-border">

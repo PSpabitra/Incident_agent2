@@ -136,7 +136,7 @@ export default function IncidentDetails() {
               · {formatDateTime(incident.createdAt)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* <div className="flex flex-wrap gap-2">
             {incident.status !== 'resolved' && incident.status !== 'closed' && (
               <>
                 <Button
@@ -165,7 +165,7 @@ export default function IncidentDetails() {
                 </Button>
               </>
             )}
-          </div>
+          </div> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -393,9 +393,9 @@ function MistralAnalysisCard({ incidentId }: { incidentId: string }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-4 w-4 text-warning" /> Mistral LLM analysis
+            <Bot className="h-4 w-4 text-warning" /> Automated Agent Analysis
           </CardTitle>
-          <CardDescription>The LLM step encountered an error.</CardDescription>
+          <CardDescription>The agent step encountered an error.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">{analysis.error}</p>
@@ -408,13 +408,13 @@ function MistralAnalysisCard({ incidentId }: { incidentId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Bot className="h-4 w-4 text-primary" /> Mistral LLM analysis
+          <Bot className="h-4 w-4 text-primary" /> Automated Agent Analysis
           <Badge variant={analysis.confidence >= 0.7 ? 'success' : 'warning'}>
             {Math.round(analysis.confidence * 100)}% confidence
           </Badge>
         </CardTitle>
         <CardDescription>
-          {analysis.model} · {analysis.latencyMs}ms ·{' '}
+          Agent step · {analysis.latencyMs}ms ·{' '}
           {analysis.tokensIn + analysis.tokensOut} tokens
         </CardDescription>
       </CardHeader>
