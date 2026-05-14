@@ -288,78 +288,84 @@ TAGS: ${article.tags?.join(', ') || 'None'}
         </Card>
 
         {/* Table View */}
-        <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl">
-          <div className="overflow-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
-            <Table className="border-none border-separate border-spacing-0">
-              <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
-                <TR className="hover:bg-transparent border-none">
-                  <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ARTICLE</TH>
-                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CATEGORY</TH>
-                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">TAGS</TH>
-                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">STATUS</TH>
-                  <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">UPDATED</TH>
-                  <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
-                </TR>
-              </THead>
-              <TBody>
-                {filtered.map((article) => (
-                  <TR key={article.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
-                    <TD className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                        <span className="font-bold text-[15px] text-slate-800">{ensureString(article.title)}</span>
-                        <Badge variant="outline" className="bg-emerald-50/50 text-emerald-600 border-emerald-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter">
-                          KB
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
-                        {renderDescription(article)}
-                      </p>
-                    </TD>
-                    <TD className="px-6 py-6">
-                      <span className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">
-                        {ensureString(article.category) || 'GENERAL'}
-                      </span>
-                    </TD>
-                    <TD className="px-6 py-6">
-                      <div className="flex flex-wrap gap-1">
-                        {article.tags?.slice(0, 2).map(tag => (
-                          <Badge key={tag} variant="outline" className="text-[9px] font-bold text-slate-500 border-slate-200 bg-white px-1.5">
-                            {tag.toUpperCase()}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TD>
-                    <TD className="px-6 py-6 text-center">
-                      <Badge
-                        variant={article.isPublished ? 'success' : 'muted'}
-                        className="text-[10px] font-bold uppercase tracking-widest px-2.5 h-6"
-                      >
-                        {article.isPublished ? 'PUBLISHED' : 'DRAFT'}
-                      </Badge>
-                    </TD>
-                    <TD className="px-6 py-6 whitespace-nowrap">
-                      <span className="text-[13px] text-slate-400 font-medium">
-                        {formatRelativeTime(article.updatedAt || article.createdAt || new Date())}
-                      </span>
-                    </TD>
-                    <TD className="px-8 py-6">
-                      <div className="flex items-center justify-end gap-5">
-                        <button
-                          onClick={() => setSelectedArticle(article)}
-                          className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors tracking-widest"
-                        >
-                          VIEW
-                        </button>
-                        <button className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </TD>
+        <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl min-h-[400px] flex flex-col">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center py-20">
+              <PageSpinner />
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-[600px] scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+              <Table className="border-none border-separate border-spacing-0">
+                <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                  <TR className="hover:bg-transparent border-none">
+                    <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ARTICLE</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CATEGORY</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">TAGS</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">STATUS</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">UPDATED</TH>
+                    <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
                   </TR>
-                ))}
-              </TBody>
-            </Table>
-          </div>
+                </THead>
+                <TBody>
+                  {filtered.map((article) => (
+                    <TR key={article.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[15px] text-slate-800">{ensureString(article.title)}</span>
+                          <Badge variant="outline" className="bg-emerald-50/50 text-emerald-600 border-emerald-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter">
+                            KB
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
+                          {renderDescription(article)}
+                        </p>
+                      </TD>
+                      <TD className="px-6 py-6">
+                        <span className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">
+                          {ensureString(article.category) || 'GENERAL'}
+                        </span>
+                      </TD>
+                      <TD className="px-6 py-6">
+                        <div className="flex flex-wrap gap-1">
+                          {article.tags?.slice(0, 2).map(tag => (
+                            <Badge key={tag} variant="outline" className="text-[9px] font-bold text-slate-500 border-slate-200 bg-white px-1.5">
+                              {tag.toUpperCase()}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TD>
+                      <TD className="px-6 py-6 text-center">
+                        <Badge
+                          variant={article.isPublished ? 'success' : 'muted'}
+                          className="text-[10px] font-bold uppercase tracking-widest px-2.5 h-6"
+                        >
+                          {article.isPublished ? 'PUBLISHED' : 'DRAFT'}
+                        </Badge>
+                      </TD>
+                      <TD className="px-6 py-6 whitespace-nowrap">
+                        <span className="text-[13px] text-slate-400 font-medium">
+                          {formatRelativeTime(article.updatedAt || article.createdAt || new Date())}
+                        </span>
+                      </TD>
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center justify-end gap-5">
+                          <button
+                            onClick={() => setSelectedArticle(article)}
+                            className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors tracking-widest"
+                          >
+                            VIEW
+                          </button>
+                          <button className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
+          )}
         </Card>
       </div>
 
