@@ -174,17 +174,17 @@ export default function Runbooks() {
             >
               <Card className="max-h-[70vh] flex flex-col">
                 <div className="px-6 py-5 border-b border-border">
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-3 mt-0.5">
                     <div className="min-w-0">
 
-                      <div className="flex items-start gap-3 mt-1">
+                      <div className="flex items-start gap-3">
                         <h2 className="text-xl font-bold text-foreground">
                           {(() => {
                             const name = selected.summary?.name || selected.name;
                             return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
                           })()}
                         </h2>
-                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0 mt-1.5">
+                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0 mt-1">
                           {selected.summary?.category || selected.category || 'General'}
                         </Badge>
                       </div>
