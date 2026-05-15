@@ -389,7 +389,7 @@ export function CreateContentModal({
                   Click to upload or drag and drop
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supported formats: {SUPPORTED_FORMATS.join(', ')}
+                  Supported formats: {SUPPORTED_FORMATS.join(', ')} (20 MB max)
                 </p>
               </div>
             </div>

@@ -126,7 +126,7 @@ function NavList({ onItemClick }: { onItemClick?: () => void }) {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between gap-2 border-b border-border px-5">
+      <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-5">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-soft-sm">
             <Sparkles className="h-4 w-4" />

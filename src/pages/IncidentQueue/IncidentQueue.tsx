@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import {  Search, Inbox, ArrowUpDown, ArrowUp, ArrowDown, SortAsc, SortDesc } from 'lucide-react';
+import {  Search, Inbox, ArrowUpDown, ArrowUp, ArrowDown, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
@@ -25,6 +25,14 @@ export default function IncidentQueue() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
+  const [nextRefresh, setNextRefresh] = useState(15);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNextRefresh((prev) => (prev <= 1 ? 15 : prev - 1));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -35,7 +43,7 @@ export default function IncidentQueue() {
         search: debouncedSearch || undefined,
         status: status || undefined,
         priority: priority || undefined,
-        pageSize: 6,
+        pageSize: 5,
         page,
       }),
     refetchInterval: 15_000,
@@ -80,7 +88,13 @@ export default function IncidentQueue() {
       description="All incidents ingested by the agent — auto-refreshing every 15s."
       noScroll
       actions={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+            <RefreshCw className="h-3 w-3 text-blue-500 animate-spin-slow" />
+            <span className="text-[12px] font-bold tracking-widest text-slate-500 ">
+              Refreshing in {nextRefresh}s
+            </span>
+          </div>
           <Badge variant="success" className="gap-1.5 px-2 py-1 bg-emerald-50 text-emerald-600 border-emerald-100">
             <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
             LIVE
