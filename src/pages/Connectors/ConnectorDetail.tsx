@@ -86,6 +86,7 @@ export function ConnectorDetail() {
         throw new Error('Invalid JSON format');
       }
     },
+    
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['connector', id] });
       setEditingConfig(false);
