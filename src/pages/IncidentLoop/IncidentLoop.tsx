@@ -226,6 +226,8 @@ export default function IncidentLoop() {
                         return { icon: <CheckCircle2 className="h-3.5 w-3.5" />, color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-100', shadow: 'shadow-slate-100/50' };
                       };
 
+                      
+
                       const renderStepOutput = (step: any) => {
                         const isEmail = step.action.toLowerCase().includes('email');
                         if (isEmail && step.output.includes('Recipient:')) {

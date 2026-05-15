@@ -42,14 +42,6 @@ export function ConnectorDetail() {
     enabled: !!id,
   });
 
-  // Show success toast if backend redirected here after OAuth
-  useEffect(() => {
-    if (params.get('connected') === '1') {
-      toast.success('Connector authorized', 'Credentials saved and ready for sync.');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params]);
-
   const connector = connectorQ.data;
   const [basicAuthOpen, setBasicAuthOpen] = useState(false);
   const [basicAuthForm, setBasicAuthForm] = useState({ 
@@ -58,8 +50,30 @@ export function ConnectorDetail() {
     security_token: '',
     client_id: '',
     client_secret: '',
-    refresh_token: ''
+    refresh_token: '',
+    // Jira fields
+    site_url: '',
+    email: '',
+    api_token: '',
+    project_key: ''
   });
+
+  // Show success toast if backend redirected here after OAuth
+  useEffect(() => {
+    if (params.get('connected') === '1') {
+      toast.success('Connector authorized', 'Credentials saved and ready for sync.');
+    }
+    
+    if (connector?.provider === 'jira') {
+      setBasicAuthForm(prev => ({
+        ...prev,
+        site_url: "",
+        email: "",
+        api_token: "",
+        project_key: ""
+      }));
+    }
+  }, [params, connector]);
   const [editingConfig, setEditingConfig] = useState(false);
   const [draftConfig, setDraftConfig] = useState('');
 
@@ -193,7 +207,7 @@ export function ConnectorDetail() {
             {connector.status !== 'connected' ? (
               <Button
                 onClick={() => {
-                  if (connector.provider === 'servicenow' || connector.provider === 'zoho' || connector.provider === 'salesforce') {
+                  if (connector.provider === 'servicenow' || connector.provider === 'zoho' || connector.provider === 'salesforce' || connector.provider === 'jira') {
                     // For now, let's assume if it's basic auth we show the form
                     // Actually, we check metadata or auth_type.
                     // But our Connector type doesn't have auth_type yet in the frontend.
@@ -325,6 +339,43 @@ export function ConnectorDetail() {
                       value={basicAuthForm.refresh_token}
                       onChange={(e) => setBasicAuthForm({ ...basicAuthForm, refresh_token: e.target.value })}
                       placeholder="Enter Zoho Refresh Token"
+                    />
+                  </div>
+                </>
+              )}
+              {connector.provider === 'jira' && (
+                <>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs text-muted-foreground">Site URL</label>
+                    <input
+                      className="w-full rounded border bg-background p-2 text-sm font-mono"
+                      value={basicAuthForm.site_url}
+                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, site_url: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Email Address</label>
+                    <input
+                      className="w-full rounded border bg-background p-2 text-sm"
+                      value={basicAuthForm.email}
+                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">Project Key</label>
+                    <input
+                      className="w-full rounded border bg-background p-2 text-sm font-mono"
+                      value={basicAuthForm.project_key}
+                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, project_key: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs text-muted-foreground">API Token</label>
+                    <input
+                      type="password"
+                      className="w-full rounded border bg-background p-2 text-sm"
+                      value={basicAuthForm.api_token}
+                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, api_token: e.target.value })}
                     />
                   </div>
                 </>

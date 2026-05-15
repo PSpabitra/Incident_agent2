@@ -68,6 +68,36 @@ export function Connectors() {
     queryFn: () => ConnectorsApi.list(),
   });
 
+  const quickAddJira = useMutation({
+    mutationFn: () => ConnectorsApi.create({
+      provider: "jira",
+      name: "Jira Cloud",
+      config: {
+        site_url: "",
+        project_key: "",
+        auth_type: "basic"
+      },
+      sync_enabled: true,
+      poll_interval_sec: 30
+    }),
+    onSuccess: async (connector) => {
+      await qc.invalidateQueries({ queryKey: ['connectors'] });
+      toast.success(
+        `Created ${connector.name}`,
+        'Jira Cloud connector has been automatically configured.',
+      );
+      navigate(`/connectors/${connector.id}`);
+    },
+  });
+
+  const handlePick = (p: ConnectorProvider) => {
+    if (p.provider === 'jira') {
+      quickAddJira.mutate();
+    } else {
+      setCreatingForProvider(p);
+    }
+  };
+
   const isLoading = providersQ.isLoading || connectorsQ.isLoading;
 
   return (
@@ -86,7 +116,7 @@ export function Connectors() {
           />
           <CatalogSection
             providers={providersQ.data ?? []}
-            onPick={(p) => setCreatingForProvider(p)}
+            onPick={handlePick}
           />
         </>
       )}
