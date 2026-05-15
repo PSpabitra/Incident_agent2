@@ -1,12 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, X, FileText, File as FileIcon, AlertCircle, CheckCircle2, Wand2, Plus, Trash2, ArrowLeft, Check, LayoutGrid, List } from 'lucide-react';
+import { Upload, X, FileText, AlertCircle, Wand2, Plus, Trash2, ArrowLeft, Check, LayoutGrid, List } from 'lucide-react';
 import { ManualRichSummary } from './ManualRichSummary';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+// import { Input } from '@/components/ui/Input';
 import { Badge } from '@/components/ui/Badge';
 import { cn } from '@/utils/cn';
-import { useToast } from '@/hooks/useToast';
 
 interface CreateContentModalProps {
   isOpen: boolean;
@@ -37,7 +36,6 @@ export function CreateContentModal({
   processedData = null,
   onReset,
 }: CreateContentModalProps) {
-  const { error } = useToast();
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);

@@ -6,13 +6,9 @@ import {
   GitBranch,
   AlertOctagon,
   Activity,
-  Settings,
   Sparkles,
   Plug,
-  Network,
   X,
-  ChevronLeft,
-  ChevronRight,
   RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

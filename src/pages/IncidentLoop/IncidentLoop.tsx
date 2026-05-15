@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Shield, Search, Filter, RotateCcw, Clock, MoreHorizontal, CheckCircle2 } from 'lucide-react';
+import { Shield, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
 import { incidentApi } from '@/services/api/endpoints';
-import { formatRelativeTime, truncate } from '@/utils/formatters';
+import { formatRelativeTime } from '@/utils/formatters';
 import { cn } from '@/utils/cn';
 import type { Incident } from '@/types';
 
@@ -13,10 +14,15 @@ type Tab = 'OPEN' | 'ALL' | 'CLOSED';
 export default function IncidentLoop() {
   const [activeTab, setActiveTab] = useState<Tab>('ALL');
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['incidents-loop', activeTab],
-    queryFn: () => incidentApi.list({ pageSize: 5 }),
+    queryKey: ['incidents-loop', activeTab, page],
+    queryFn: () => incidentApi.list({ 
+      status: activeTab === 'ALL' ? undefined : activeTab.toLowerCase(),
+      pageSize: 5,
+      page 
+    }),
   });
 
   const incidents = data?.items || [];
@@ -31,7 +37,10 @@ export default function IncidentLoop() {
             {(['OPEN', 'ALL', 'CLOSED'] as Tab[]).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => {
+                  setActiveTab(tab);
+                  setPage(1);
+                }}
                 className={cn(
                   "flex-1 py-1.5 text-[10px] font-bold tracking-widest transition-all rounded-md",
                   activeTab === tab 
@@ -46,10 +55,15 @@ export default function IncidentLoop() {
 
           {/* List Content */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <div className="px-4 py-3 bg-slate-50/50">
+            <div className="px-4 py-3 bg-slate-50/50 flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
-                {isLoading ? 'Loading...' : `${incidents.length} Incidents`}
+                {isLoading ? 'Loading...' : `${data?.total || 0} Incidents`}
               </span>
+              {!isLoading && data && (
+                 <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+                  Page {page} of {Math.ceil((data.total || 0) / 5) || 1}
+                </span>
+              )}
             </div>
 
             <div className="divide-y divide-slate-50">
@@ -101,6 +115,31 @@ export default function IncidentLoop() {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Pagination Footer */}
+          <div className="p-4 border-t border-slate-50 flex items-center justify-between bg-white flex-none">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="h-8 text-[9px] font-bold tracking-widest px-3 border-slate-100"
+            >
+              PREV
+            </Button>
+            <div className="flex gap-1">
+               {/* Small dot indicators for pages could go here if desired */}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPage(p => p + 1)}
+              disabled={!data?.hasMore}
+              className="h-8 text-[9px] font-bold tracking-widest px-3 border-slate-100"
+            >
+              NEXT
+            </Button>
           </div>
         </div>
 
@@ -177,14 +216,14 @@ export default function IncidentLoop() {
 
                   <div className="mt-12 pt-8 border-t border-slate-50 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex -space-x-2">
+                      {/* <div className="flex -space-x-2">
                         {[1, 2, 3].map(i => (
                           <div key={i} className="w-7 h-7 rounded-full border-2 border-white bg-slate-100 overflow-hidden ring-1 ring-slate-100">
                              <img src={`https://i.pravatar.cc/100?img=${i+10}`} alt="Agent" className="w-full h-full object-cover opacity-80" />
                           </div>
                         ))}
-                      </div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">3 Agents Active</span>
+                      </div> */}
+                      {/* <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">3 Agents Active</span> */}
                     </div>
                     {/* <button className="text-[10px] font-bold text-blue-600 uppercase tracking-widest hover:underline">
                       View Audit Log
