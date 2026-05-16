@@ -46,6 +46,19 @@ export interface AgentStep {
   metadata?: Record<string, unknown>;
 }
 
+export interface IncidentEmail {
+  id: string;
+  incident_id: string;
+  to_address: string;
+  subject: string;
+  status: string;
+  template: string;
+  error: string | null;
+  sent_at: string;
+  created_at: string;
+}
+
+
 export interface Incident {
   id: string;
   subject: string;
@@ -64,6 +77,7 @@ export interface Incident {
   autoResolved: boolean;
   confidence: number;
   steps: AgentStep[];
+  emails?: IncidentEmail[];
   tags: string[];
   createdAt: string;
   updatedAt: string;
