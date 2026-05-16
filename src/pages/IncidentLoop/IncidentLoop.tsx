@@ -386,8 +386,8 @@ export default function IncidentLoop() {
                         <div key={step.id} className="relative flex gap-6 group/step">
                           {/* Connector Line */}
                           {idx !== displaySteps.length - 1 && (
-                            <div className="absolute left-[11px] top-8 w-px h-full bg-slate-100 group-hover/step:bg-slate-200 transition-colors overflow-hidden">
-                              <div className="absolute inset-0 bg-gradient-to-b from-blue-500 via-purple-500 to-rose-500 opacity-20" />
+                            <div className="absolute left-[11px] top-8 w-px h-full bg-emerald-100 group-hover/step:bg-emerald-200 transition-colors overflow-hidden">
+                              <div className="absolute inset-0 bg-gradient-to-b from-emerald-400 to-emerald-600 opacity-30" />
                             </div>
                           )}
 
