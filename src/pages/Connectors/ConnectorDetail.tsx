@@ -7,7 +7,6 @@ import {
   Activity,
   AlertCircle,
   ArrowLeft,
-  Check,
   Copy,
   Loader2,
   PlayCircle,
@@ -23,7 +22,8 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { PageSpinner, Spinner } from '@/components/ui/Spinner';
+import { Input } from '@/components/ui/Input';
+import { PageSpinner } from '@/components/ui/Spinner';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { useToast } from '@/hooks/useToast';
 import { ConnectorsApi } from '@/services/api/connectors';
@@ -42,26 +42,43 @@ export function ConnectorDetail() {
     enabled: !!id,
   });
 
+  const connector = connectorQ.data;
+  const [basicAuthOpen, setBasicAuthOpen] = useState(false);
+  const [basicAuthForm, setBasicAuthForm] = useState({
+    username: '',
+    password: '',
+    security_token: '',
+    client_id: '',
+    client_secret: '',
+    refresh_token: '',
+    // Jira fields
+    site_url: '',
+    email: '',
+    api_token: '',
+    project_key: ''
+  });
+  const [draftConfig, setDraftConfig] = useState('');
+  const [editingConfig, setEditingConfig] = useState(false);
+
   // Show success toast if backend redirected here after OAuth
   useEffect(() => {
     if (params.get('connected') === '1') {
       toast.success('Connector authorized', 'Credentials saved and ready for sync.');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params]);
+  }, [params, toast]);
 
-  const connector = connectorQ.data;
-  const [basicAuthOpen, setBasicAuthOpen] = useState(false);
-  const [basicAuthForm, setBasicAuthForm] = useState({ 
-    username: '', 
-    password: '', 
-    security_token: '',
-    client_id: '',
-    client_secret: '',
-    refresh_token: ''
-  });
-  const [editingConfig, setEditingConfig] = useState(false);
-  const [draftConfig, setDraftConfig] = useState('');
+  // Initialize form only once or when connector data changes for the first time
+  useEffect(() => {
+    if (connector && !basicAuthOpen) {
+      setBasicAuthForm(prev => ({
+        ...prev,
+        site_url: (connector.config?.site_url as string) ?? prev.site_url,
+        email: (connector.config?.email as string) ?? prev.email,
+        project_key: (connector.config?.project_key as string) ?? prev.project_key,
+        username: (connector.config?.username as string) ?? prev.username,
+      }));
+    }
+  }, [connector?.id, connector?.provider, basicAuthOpen]);
 
   const updateConfig = useMutation({
     mutationFn: () => {
@@ -72,6 +89,8 @@ export function ConnectorDetail() {
         throw new Error('Invalid JSON format');
       }
     },
+
+
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['connector', id] });
       setEditingConfig(false);
@@ -177,8 +196,8 @@ export function ConnectorDetail() {
                 connector.status === 'connected'
                   ? 'success'
                   : connector.status === 'error' || connector.status === 'expired'
-                  ? 'critical'
-                  : 'muted'
+                    ? 'critical'
+                    : 'muted'
               }
             >
               {connector.status}
@@ -193,7 +212,7 @@ export function ConnectorDetail() {
             {connector.status !== 'connected' ? (
               <Button
                 onClick={() => {
-                  if (connector.provider === 'servicenow' || connector.provider === 'zoho' || connector.provider === 'salesforce') {
+                  if (connector.provider === 'servicenow' || connector.provider === 'zoho' || connector.provider === 'salesforce' || connector.provider === 'jira') {
                     // For now, let's assume if it's basic auth we show the form
                     // Actually, we check metadata or auth_type.
                     // But our Connector type doesn't have auth_type yet in the frontend.
@@ -219,13 +238,18 @@ export function ConnectorDetail() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  if (connector.provider === 'servicenow') {
+                  if (
+                    connector.provider === 'servicenow' ||
+                    connector.provider === 'zoho' ||
+                    connector.provider === 'salesforce' ||
+                    connector.provider === 'jira'
+                  ) {
                     setBasicAuthOpen(true);
                   } else {
                     startOAuth.mutate();
                   }
                 }}
-                disabled={startOAuth.isPending || connectBasic.isPending}
+                isLoading={startOAuth.isPending || connectBasic.isPending}
                 leftIcon={<RefreshCw className="h-4 w-4" />}
               >
                 Reconnect
@@ -234,7 +258,7 @@ export function ConnectorDetail() {
             <Button
               variant="ghost"
               onClick={() => checkHealth.mutate()}
-              disabled={checkHealth.isPending}
+              isLoading={checkHealth.isPending}
               leftIcon={<Activity className="h-4 w-4" />}
             >
               Health check
@@ -242,7 +266,8 @@ export function ConnectorDetail() {
             <Button
               variant="ghost"
               onClick={() => syncNow.mutate()}
-              disabled={syncNow.isPending || connector.status !== 'connected'}
+              isLoading={syncNow.isPending}
+              disabled={connector.status !== 'connected'}
               leftIcon={<PlayCircle className="h-4 w-4" />}
             >
               Sync now
@@ -260,78 +285,99 @@ export function ConnectorDetail() {
 
         {basicAuthOpen && (
           <div className="mt-4 border-t pt-4">
-            <h4 className="mb-2 text-sm font-medium">Enter Credentials</h4>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <h4 className="mb-4 text-sm font-medium">Enter Credentials</h4>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {(connector.provider === 'servicenow' || connector.provider === 'salesforce') && (
                 <>
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Username</label>
-                    <input
-                      type="text"
-                      className="w-full rounded border bg-background p-2 text-sm"
-                      value={basicAuthForm.username}
-                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, username: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs text-muted-foreground">Password</label>
-                    <input
-                      type="password"
-                      className="w-full rounded border bg-background p-2 text-sm"
-                      value={basicAuthForm.password}
-                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, password: e.target.value })}
-                    />
-                  </div>
+                  <Input
+                    label="Username"
+                    placeholder="Enter username"
+                    value={basicAuthForm.username}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, username: e.target.value })}
+                  />
+                  <Input
+                    label="Password"
+                    type="password"
+                    placeholder="Enter password"
+                    value={basicAuthForm.password}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, password: e.target.value })}
+                  />
                 </>
               )}
               {connector.provider === 'salesforce' && (
-                <div className="space-y-1 md:col-span-2">
-                  <label className="text-xs text-muted-foreground">Security Token</label>
-                  <input
-                    type="password"
-                    className="w-full rounded border bg-background p-2 text-sm"
-                    value={basicAuthForm.security_token}
-                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, security_token: e.target.value })}
-                    placeholder="Enter Salesforce Security Token"
-                  />
-                </div>
+                <Input
+                  label="Security Token"
+                  type="password"
+                  containerClassName="md:col-span-2"
+                  placeholder="Enter Salesforce Security Token"
+                  value={basicAuthForm.security_token}
+                  onChange={(e) => setBasicAuthForm({ ...basicAuthForm, security_token: e.target.value })}
+                />
               )}
               {connector.provider === 'zoho' && (
                 <>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs text-muted-foreground">Client ID</label>
-                    <input
-                      className="w-full rounded border bg-background p-2 text-sm"
-                      value={basicAuthForm.client_id}
-                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, client_id: e.target.value })}
-                      placeholder="Enter Zoho Client ID"
-                    />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs text-muted-foreground">Client Secret</label>
-                    <input
-                      type="password"
-                      className="w-full rounded border bg-background p-2 text-sm"
-                      value={basicAuthForm.client_secret}
-                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, client_secret: e.target.value })}
-                      placeholder="Enter Zoho Client Secret"
-                    />
-                  </div>
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs text-muted-foreground">Refresh Token</label>
-                    <input
-                      type="password"
-                      className="w-full rounded border bg-background p-2 text-sm"
-                      value={basicAuthForm.refresh_token}
-                      onChange={(e) => setBasicAuthForm({ ...basicAuthForm, refresh_token: e.target.value })}
-                      placeholder="Enter Zoho Refresh Token"
-                    />
-                  </div>
+                  <Input
+                    label="Client ID"
+                    containerClassName="md:col-span-2"
+                    placeholder="Enter Zoho Client ID"
+                    value={basicAuthForm.client_id}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, client_id: e.target.value })}
+                  />
+                  <Input
+                    label="Client Secret"
+                    type="password"
+                    containerClassName="md:col-span-2"
+                    placeholder="Enter Zoho Client Secret"
+                    value={basicAuthForm.client_secret}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, client_secret: e.target.value })}
+                  />
+                  <Input
+                    label="Refresh Token"
+                    type="password"
+                    containerClassName="md:col-span-2"
+                    placeholder="Enter Zoho Refresh Token"
+                    value={basicAuthForm.refresh_token}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, refresh_token: e.target.value })}
+                  />
+                </>
+              )}
+              {connector.provider === 'jira' && (
+                <>
+                  <Input
+                    label="Site URL"
+                    containerClassName="md:col-span-2"
+                    placeholder="https://your-domain.atlassian.net"
+                    className="font-mono"
+                    value={basicAuthForm.site_url}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, site_url: e.target.value })}
+                  />
+                  <Input
+                    label="Email Address"
+                    type="email"
+                    placeholder="email@example.com"
+                    value={basicAuthForm.email}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, email: e.target.value })}
+                  />
+                  <Input
+                    label="Project Key"
+                    placeholder="e.g. PROJ"
+                    className="font-mono uppercase"
+                    value={basicAuthForm.project_key}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, project_key: e.target.value.toUpperCase() })}
+                  />
+                  <Input
+                    label="API Token"
+                    type="password"
+                    containerClassName="md:col-span-2"
+                    placeholder="Enter Jira API Token"
+                    value={basicAuthForm.api_token}
+                    onChange={(e) => setBasicAuthForm({ ...basicAuthForm, api_token: e.target.value })}
+                  />
                 </>
               )}
             </div>
-            <div className="mt-3 flex gap-2">
-              <Button size="sm" onClick={() => connectBasic.mutate()} disabled={connectBasic.isPending}>
+            <div className="mt-6 flex gap-2">
+              <Button size="sm" onClick={() => connectBasic.mutate()} isLoading={connectBasic.isPending}>
                 Verify & Save
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setBasicAuthOpen(false)}>
@@ -467,72 +513,26 @@ export function ConnectorDetail() {
 }
 
 function CopyBtn({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false);
+  const toast = useToast();
   return (
-    <button
-      onClick={async () => {
-        await navigator.clipboard.writeText(value);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+    <Button
+      size="xs"
+      variant="ghost"
+      onClick={() => {
+        void navigator.clipboard.writeText(value);
+        toast.success('Copied to clipboard');
       }}
-      className="rounded p-1.5 hover:bg-surface-hover"
-      aria-label="Copy URL"
-      type="button"
     >
-      {copied ? (
-        <Check className="h-3.5 w-3.5 text-success" />
-      ) : (
-        <Copy className="h-3.5 w-3.5" />
-      )}
-    </button>
+      <Copy className="h-3 w-3" />
+    </Button>
   );
 }
 
 function RecentEventsButton({ id }: { id: string }) {
-  const [open, setOpen] = useState(false);
-  const eventsQ = useQuery({
-    queryKey: ['connector-events', id],
-    queryFn: () => ConnectorsApi.listEvents(id, 25),
-    enabled: open,
-  });
+  const navigate = useNavigate();
   return (
-    <>
-      <Button size="sm" variant="secondary" onClick={() => setOpen((v) => !v)}>
-        {open ? 'Hide events' : 'Show events'}
-      </Button>
-      {open && (
-        <div className="mt-3">
-          {eventsQ.isLoading ? (
-            <Spinner size="sm" label="Loading…" />
-          ) : (eventsQ.data ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground">No events yet.</p>
-          ) : (
-            <ul className="space-y-1 text-xs">
-              {eventsQ.data!.map((ev) => (
-                <li key={ev.id} className="flex flex-wrap items-baseline gap-2">
-                  <Badge
-                    variant={
-                      ev.process_status === 'processed'
-                        ? 'success'
-                        : ev.process_status === 'failed'
-                        ? 'critical'
-                        : 'muted'
-                    }
-                  >
-                    {ev.process_status}
-                  </Badge>
-                  <span className="font-mono">{ev.event_type}</span>
-                  <span className="text-muted-foreground">
-                    {formatRelativeTime(ev.received_at)}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </>
+    <Button size="sm" variant="secondary" onClick={() => navigate(`/connectors/${id}/events`)}>
+      View events →
+    </Button>
   );
-}
-
-export default ConnectorDetail;
+}

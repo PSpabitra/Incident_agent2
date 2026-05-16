@@ -1,4 +1,4 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import {
@@ -9,13 +9,11 @@ import {
   Eye,
   Lightbulb,
   PlayCircle,
-  AlertOctagon,
   Workflow,
-  Mail,
 } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+// import { Button } from '@/components/ui/Button';
 import { PageSpinner } from '@/components/ui/Spinner';
 import { Badge } from '@/components/ui/Badge';
 import { StatusBadge, PriorityBadge } from '@/components/shared/StatusBadges';
@@ -136,7 +134,7 @@ export default function IncidentDetails() {
               · {formatDateTime(incident.createdAt)}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          {/* <div className="flex flex-wrap gap-2">
             {incident.status !== 'resolved' && incident.status !== 'closed' && (
               <>
                 <Button
@@ -165,7 +163,7 @@ export default function IncidentDetails() {
                 </Button>
               </>
             )}
-          </div>
+          </div> */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -311,7 +309,7 @@ export default function IncidentDetails() {
                 )}
               </CardContent>
             </Card>
-
+{/* 
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>
@@ -333,7 +331,7 @@ export default function IncidentDetails() {
                   <Mail className="h-4 w-4" /> Notify caller
                 </button>
               </CardContent>
-            </Card>
+            </Card> */}
 
             <Card>
               <CardHeader>
@@ -393,9 +391,9 @@ function MistralAnalysisCard({ incidentId }: { incidentId: string }) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
-            <Bot className="h-4 w-4 text-warning" /> Mistral LLM analysis
+            <Bot className="h-4 w-4 text-warning" /> Automated Agent Analysis
           </CardTitle>
-          <CardDescription>The LLM step encountered an error.</CardDescription>
+          <CardDescription>The agent step encountered an error.</CardDescription>
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">{analysis.error}</p>
@@ -408,15 +406,15 @@ function MistralAnalysisCard({ incidentId }: { incidentId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
-          <Bot className="h-4 w-4 text-primary" /> Mistral LLM analysis
-          <Badge variant={analysis.confidence >= 0.7 ? 'success' : 'warning'}>
+          <Bot className="h-4 w-4 text-primary" /> Automated Agent Analysis
+          {/* <Badge variant={analysis.confidence >= 0.7 ? 'success' : 'warning'}>
             {Math.round(analysis.confidence * 100)}% confidence
-          </Badge>
+          </Badge> */}
         </CardTitle>
-        <CardDescription>
-          {analysis.model} · {analysis.latencyMs}ms ·{' '}
+        {/* <CardDescription>
+          Agent step · {analysis.latencyMs}ms ·{' '}
           {analysis.tokensIn + analysis.tokensOut} tokens
-        </CardDescription>
+        </CardDescription> */}
       </CardHeader>
       <CardContent className="space-y-4">
         {analysis.rootCause && (

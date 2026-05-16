@@ -15,6 +15,7 @@ export const appConfig = {
     login: '/login',
     dashboard: '/dashboard',
     incidents: '/incidents',
+    incidentLoop: '/incident-loop',
     incidentDetails: (id: string) => `/incidents/${id}`,
     runbooks: '/runbooks',
     knowledgeBase: '/knowledge-base',

@@ -48,6 +48,8 @@ export interface CreateConnectorPayload {
   provider: string;
   name: string;
   config?: Record<string, unknown>;
+  sync_enabled?: boolean;
+  poll_interval_sec?: number;
 }
 
 export interface UpdateConnectorPayload {

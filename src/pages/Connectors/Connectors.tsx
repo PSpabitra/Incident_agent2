@@ -68,6 +68,10 @@ export function Connectors() {
     queryFn: () => ConnectorsApi.list(),
   });
 
+  const handlePick = (p: ConnectorProvider) => {
+    setCreatingForProvider(p);
+  };
+
   const isLoading = providersQ.isLoading || connectorsQ.isLoading;
 
   return (
@@ -86,7 +90,7 @@ export function Connectors() {
           />
           <CatalogSection
             providers={providersQ.data ?? []}
-            onPick={(p) => setCreatingForProvider(p)}
+            onPick={handlePick}
           />
         </>
       )}
@@ -205,6 +209,7 @@ function CatalogSection({
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
         {providers.map((p) => {
           const Icon = ICON_MAP[p.icon] ?? Cloud;
+          const isPending = false; // We don't have isCreatingJira anymore in this context
           return (
             <Card key={p.provider} className="p-4">
               <div className="flex items-start gap-3">
@@ -240,10 +245,11 @@ function CatalogSection({
                     </a>
                     <Button
                       size="sm"
-                      leftIcon={<Plus className="h-3.5 w-3.5" />}
+                      leftIcon={isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                       onClick={() => onPick(p)}
+                      disabled={isPending}
                     >
-                      Add
+                      {isPending ? 'Adding...' : 'Add'}
                     </Button>
                   </div>
                 </div>
@@ -266,19 +272,28 @@ function CreateConnectorModal({
   onClose: () => void;
   onCreated: (c: Connector) => void;
 }) {
-  const [name, setName] = useState(`${provider.display_name} (default)`);
+  const [name, setName] = useState(`${provider.display_name} `);
+  const [config, setConfig] = useState<Record<string, string>>(() => {
+    const baseFields = [...provider.required_config];
+    if (provider.provider === 'jira') {
+      // Ensure these are present for Jira
+      if (!baseFields.includes('site_url')) baseFields.push('site_url');
+      if (!baseFields.includes('project_key')) baseFields.push('project_key');
+      if (!baseFields.includes('auth_type')) baseFields.push('auth_type');
+    }
+    const initial = Object.fromEntries(baseFields.map((k) => [k, '']));
+    if (provider.provider === 'jira') {
+      initial.site_url = '';
+      initial.project_key = '';
+      initial.auth_type = 'basic';
+    }
+    return initial;
+  });
 
-  // Inject extra fields for certain providers
-  const effectiveConfigKeys =
-    provider.provider === 'jira'
-      ? [...new Set([...provider.required_config, 'jira_url', 'jira_email', 'jira_api_token'])]
-      : provider.provider === 'servicenow'
-      ? [...new Set([...provider.required_config, 'username', 'password'])]
-      : provider.required_config;
+  const requiredFields = provider.provider === 'jira' 
+    ? Array.from(new Set([...provider.required_config, 'site_url', 'project_key', 'auth_type']))
+    : provider.required_config;
 
-  const [config, setConfig] = useState<Record<string, string>>(
-    Object.fromEntries(effectiveConfigKeys.map((k) => [k, ''])),
-  );
 
   const create = useMutation({
     mutationFn: () =>
@@ -286,6 +301,8 @@ function CreateConnectorModal({
         provider: provider.provider,
         name,
         config,
+        sync_enabled: true,
+        poll_interval_sec: 30,
       }),
     onSuccess: onCreated,
   });
@@ -317,14 +334,14 @@ function CreateConnectorModal({
           onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
           placeholder="e.g. Acme Jira (Production)"
         />
-        {effectiveConfigKeys.length > 0 && (
+        {requiredFields.length > 0 && (
           <div>
-            <p className="mb-2 text-sm font-medium">Required configuration</p>
+            <p className="mb-2 text-sm font-medium">Configuration</p>
             <div className="space-y-3">
-              {effectiveConfigKeys.map((key) => (
+              {requiredFields.map((key) => (
                 <Input
                   key={key}
-                  label={key}
+                  label={key.replace(/_/g, ' ')}
                   value={config[key] ?? ''}
                   onChange={(e: ChangeEvent<HTMLInputElement>) =>
                     updateConfig(key, e.target.value)
@@ -348,18 +365,14 @@ function CreateConnectorModal({
 function hintFor(key: string): string {
   const hints: Record<string, string> = {
     project_key: 'e.g. OPS',
+    site_url: 'https://your-domain.atlassian.net',
+    auth_type: 'e.g. basic or oauth2',
     instance_url: 'https://acme.service-now.com',
     incident_table: 'incident',
     sandbox: 'true / false',
     pipeline_id: 'Numeric pipeline id from HubSpot',
     region: 'us | eu | in | au | cn | jp',
     module: 'desk | crm',
-    jira_url: 'https://your-domain.atlassian.net',
-    jira_email: 'your-email@example.com',
-    jira_api_token: 'ATATT...',
-    instance: 'https://dev12345.service-now.com',
-    username: 'admin',
-    password: 'password123',
   };
   return hints[key] ?? '';
 }

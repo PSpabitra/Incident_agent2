@@ -4,7 +4,7 @@
  */
 export const apiConfig = {
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1',
-  timeout: Number(import.meta.env.VITE_API_TIMEOUT),
+  timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30_000,
   retry: { attempts: 3, delayMs: 800 },
   endpoints: {
     auth: {
@@ -39,6 +39,7 @@ export const apiConfig = {
       search: '/kb/search',
       create: '/kb',
       update: (id: string) => `/kb/${id}`,
+      delete: (id: string) => `/kb/${id}`,
       upload: '/kb/upload',
     },
     escalations: {

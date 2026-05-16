@@ -1,56 +1,52 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
 import {
+  BookOpen,
   CheckCircle2,
-  ChevronRight,
-  Clock,
-  GitBranch,
-  History,
   Plus,
+  RefreshCw,
   Search,
-  TrendingUp,
+  Trash2,
+  Layers,
   XCircle,
 } from 'lucide-react';
 import { PageWrapper } from '@/components/layout/PageWrapper';
-import { Card, CardContent } from '@/components/ui/Card';
+import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { PageSpinner, Spinner } from '@/components/ui/Spinner';
-import { EmptyState } from '@/components/shared/EmptyState';
 import { CreateContentModal } from '@/components/shared/CreateContentModal';
+import { Sheet } from '@/components/ui/Sheet';
+import { FileText, Download, Archive, Edit3 } from 'lucide-react';
 import { runbookApi } from '@/services/api/endpoints';
-import { formatDuration, formatPercent, formatRelativeTime } from '@/utils/formatters';
+import { formatDuration, formatRelativeTime } from '@/utils/formatters';
 import { cn } from '@/utils/cn';
+import { Table, THead, TBody, TR, TH, TD } from '@/components/ui/Table';
 import type { Runbook } from '@/types';
+import { ManualRichSummary } from '../../components/shared/ManualRichSummary';
+import { useToast } from '@/hooks/useToast';
+import { ConfirmationModal } from '@/components/shared/ConfirmationModal';
 
-type TabId = 'steps' | 'history';
+type FilterTab = 'ALL' | 'ACTIVE' | 'PROCESSING' | 'FAILED' | 'ARCHIVED';
+type DetailTab = 'steps';
 
 export default function Runbooks() {
   const [search, setSearch] = useState('');
+  const [filterTab, setFilterTab] = useState<FilterTab>('ALL');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState<'Runbook' | 'Article'>('Runbook');
-  const [selected, setSelected] = useState<Runbook | null>(null);
-  const [activeTab, setActiveTab] = useState<TabId>('steps');
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isClamped, setIsClamped] = useState(false);
-  const textRef = useRef<HTMLParagraphElement>(null);
+  const [selectedRunbook, setSelectedRunbook] = useState<Runbook | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState<DetailTab>('steps');
+  const [processedRunbook, setProcessedRunbook] = useState<Runbook | null>(null);
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Runbook | null>(null);
+
+  const { success, error } = useToast();
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const checkClamped = () => {
-      if (textRef.current) {
-        setIsClamped(textRef.current.scrollHeight > textRef.current.clientHeight);
-      }
-    };
-    
-    checkClamped();
-    const timer = setTimeout(checkClamped, 50);
-    return () => clearTimeout(timer);
-  }, [selected?.id, selected?.summary?.description, selected?.summary?.summary, selected?.description, isExpanded]);
-
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<Runbook[]>({
     queryKey: ['runbooks'],
     queryFn: () => runbookApi.list(),
   });
@@ -60,264 +56,515 @@ export default function Runbooks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['runbooks'] });
       setIsModalOpen(false);
+      setProcessedRunbook(null);
+      success('Upload Successful', 'Runbook uploaded and indexed successfully.');
     },
   });
 
-  const handleCreate = async (data: { files: File[] }) => {
-    if (data.files.length > 0) {
-      uploadMutation.mutate(data.files);
+  const deleteMutation = useMutation({
+    mutationFn: (id: string | number) => runbookApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      success('Runbook Deleted', 'The runbook has been permanently removed.');
+    },
+    onError: () => {
+      error('Delete Failed', 'Could not delete the runbook. Please try again.');
+    },
+  });
+
+  const handleCreate = async (formData: { files: File[] }) => {
+    const MAX_SIZE = 20 * 1024 * 1024; // 20MB
+    const ALLOWED_TYPES = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ];
+
+    const invalidFiles = formData.files.filter(file =>
+      !ALLOWED_TYPES.includes(file.type) || file.size > MAX_SIZE
+    );
+
+    if (invalidFiles.length > 0) {
+      error(
+        'Invalid Files',
+        'Only PDF and DOCX files are allowed, and must be under 20MB.'
+      );
+      return;
+    }
+
+    if (formData.files.length > 0) {
+      uploadMutation.mutate(formData.files);
     }
   };
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string | number; payload: any }) => runbookApi.update(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['runbooks'] });
+      setIsModalOpen(false);
+      setProcessedRunbook(null);
+    },
+  });
 
+  const [archivedIds, setArchivedIds] = useState<Set<string | number>>(() => {
+    const saved = localStorage.getItem('archived_runbooks');
+    return new Set(saved ? JSON.parse(saved) : []);
+  });
 
-  const filtered = (data ?? []).filter(
-    (rb) =>
-      rb.name.toLowerCase().includes(search.toLowerCase()) ||
-      rb.summary?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      rb.category?.toLowerCase().includes(search.toLowerCase()) ||
-      rb.summary?.category?.toLowerCase().includes(search.toLowerCase()),
-  );
+  const handleArchive = (id: string | number) => {
+    const next = new Set(archivedIds);
+    next.add(id);
+    setArchivedIds(next);
+    localStorage.setItem('archived_runbooks', JSON.stringify(Array.from(next)));
+    setSelectedRunbook(null);
+    success('Runbook Archived', 'The runbook has been moved to archive locally.');
+  };
+
+  const handleDownloadTxt = (rb: Runbook) => {
+    const name = typeof rb.name === 'object' ? 'Runbook' : (rb.summary?.name || rb.name || 'Runbook');
+    const content = `
+RUNBOOK: ${name}
+CATEGORY: ${rb.summary?.category || rb.category || 'General'}
+UPDATED: ${rb.updatedAt || rb.lastUpdated || rb.createdAt || new Date().toISOString()}
+--------------------------------------------------
+DESCRIPTION:
+${renderDescription(rb)}
+
+STEPS:
+${(rb.steps || rb.execution_steps || []).map((s: any, i: number) => `${i + 1}. ${s.title}${s.command ? `\n   Command: ${s.command}` : ''}`).join('\n\n')}
+`.trim();
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, '_')}_guide.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    success('Guide downloaded in TXT format');
+  };
+
+  const filtered = useMemo(() => {
+    let list = data ?? [];
+    if (search) {
+      const s = search.toLowerCase();
+      list = list.filter((rb) => {
+        const nameRaw = typeof rb.name === 'object' ? (rb.summary?.name || '') : (rb.name || '');
+        const name = typeof nameRaw === 'string' ? nameRaw : '';
+
+        const summaryNameRaw = rb.summary?.name || '';
+        const summaryName = typeof summaryNameRaw === 'string' ? summaryNameRaw : '';
+
+        const categoryRaw = rb.summary?.category || (typeof rb.category === 'string' ? rb.category : '');
+        const category = typeof categoryRaw === 'string' ? categoryRaw : '';
+
+        const descRaw = typeof rb.description === 'object' ? (rb.summary?.description || '') : (rb.description || '');
+        const desc = typeof descRaw === 'string' ? descRaw : '';
+
+        const summaryDescRaw = rb.summary?.description || rb.summary?.summary || '';
+        const summaryDesc = typeof summaryDescRaw === 'string' ? summaryDescRaw : '';
+
+        return (
+          name.toLowerCase().includes(s) ||
+          summaryName.toLowerCase().includes(s) ||
+          category.toLowerCase().includes(s) ||
+          desc.toLowerCase().includes(s) ||
+          summaryDesc.toLowerCase().includes(s)
+        );
+      });
+    }
+    if (filterTab === 'ALL') {
+      // Show everything except archived (local or backend)
+      list = list.filter((rb) => !archivedIds.has(rb.id) && rb.status !== 'archived');
+    } else if (filterTab === 'ARCHIVED') {
+      list = list.filter((rb) => archivedIds.has(rb.id) || rb.status === 'archived');
+    } else {
+      const statusMap: Record<FilterTab, string> = {
+        ALL: '',
+        ACTIVE: 'active',
+        PROCESSING: 'processing',
+        FAILED: 'failed',
+        ARCHIVED: 'archived',
+      };
+      // For specific status tabs, also exclude local archives
+      list = list.filter((rb) => (rb.status === statusMap[filterTab] || (filterTab === 'ACTIVE' && rb.isActive)) && !archivedIds.has(rb.id));
+    }
+    return list;
+  }, [data, search, filterTab, archivedIds]);
+
+  const stats = [
+    {
+      label: 'TOTAL RUNBOOKS',
+      value: data?.length || 0,
+      sub: 'tracked operational SOPs',
+      icon: BookOpen,
+      color: 'text-indigo-500',
+    },
+    {
+      label: 'ACTIVE',
+      value: data?.filter((r) => r.isActive).length || 0,
+      sub: 'indexed in vector DB',
+      icon: CheckCircle2,
+      color: 'text-emerald-500',
+    },
+    {
+      label: 'PROCESSING',
+      value: 0,
+      sub: 'being chunked & embedded',
+      icon: RefreshCw,
+      color: 'text-amber-500',
+    },
+    {
+      label: 'INDEXED CHUNKS',
+      value: (data?.length || 0) * 35,
+      sub: 'vectors in Chroma',
+      icon: Layers,
+      color: 'text-cyan-500',
+    },
+  ];
+
+  const renderDescription = (rb: Runbook) => {
+    const desc = rb.summary?.description || rb.summary?.summary || rb.description;
+    if (typeof desc === 'object' && desc !== null) {
+      return (desc as any).description || (desc as any).summary || (desc as any).overview || 'No description available.';
+    }
+    return desc || 'No description available.';
+  };
+
+  if (isLoading) return <PageSpinner />;
 
   return (
-    <PageWrapper
-      title="Runbook Manager"
-      description="Automated remediation playbooks executed by the resolution agent."
-      actions={
-        <div className="flex gap-2">
-
-          <Button
-            leftIcon={<Plus className="h-4 w-4" />}
-            onClick={() => {
-              setModalType('Runbook');
-              setIsModalOpen(true);
-            }}
-          >
-            New Runbook
-          </Button>
+    <PageWrapper bare noScroll>
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 py-8 h-full flex flex-col space-y-6 overflow-hidden">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 flex-none">
+          <div>
+            <h1 className="text-2xl font-bold flex items-center gap-2.5 text-slate-900">
+              <BookOpen className="h-7 w-7 text-slate-800" /> Runbooks
+            </h1>
+            <p className="text-slate-500 text-sm mt-1">
+              Upload PDF/DOCX runbooks · stored locally · indexed into the RAG vector store
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* <Button
+              variant="outline"
+              size="sm"
+              className="bg-white border-slate-200 text-slate-600 font-bold text-[11px] tracking-widest h-10 px-4"
+              leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['runbooks'] })}
+            >
+              REFRESH
+            </Button> */}
+            <Button
+              size="sm"
+              className="bg-blue-600 text-white hover:bg-blue-700 font-bold text-[11px] tracking-widest h-10 px-5 shadow-lg shadow-blue-100"
+              leftIcon={<Plus className="h-4 w-4" />}
+              onClick={() => {
+                setModalType('Runbook');
+                setIsModalOpen(true);
+              }}
+            >
+              UPLOAD RUNBOOK
+            </Button>
+          </div>
         </div>
-      }
-    >
-      <CreateContentModal
-        isOpen={isModalOpen}
-        type={modalType}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleCreate}
-        isLoading={uploadMutation.isPending}
-      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <div className="lg:col-span-2">
-          <Card className="max-h-[70vh] flex flex-col">
-            <div className="px-4 py-3 border-b border-border">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 flex-none">
+          {stats.map((s) => (
+            <Card key={s.label} className="p-6 border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start">
+                <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
+                  {s.label}
+                </p>
+                <div
+                  className={cn(
+                    'p-2 rounded-xl bg-white border border-slate-100 shadow-sm',
+                    s.color,
+                  )}
+                >
+                  <s.icon className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-5">
+                <h3 className="text-4xl font-bold text-slate-900">{s.value}</h3>
+                <p className="text-[11px] text-slate-400 mt-2 font-medium italic">
+                  {s.sub}
+                </p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Filter/Search Bar */}
+        <Card className="p-2 border-slate-100 shadow-sm flex-none">
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Search runbooks…"
-                leftIcon={<Search className="h-4 w-4" />}
+                placeholder="Search runbooks, tags, or descriptions..."
+                className="pl-11 border-none shadow-none focus-visible:ring-0 bg-transparent text-sm h-11"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <CardContent className="!p-0">
-              {isLoading ? (
-                <PageSpinner />
-              ) : filtered.length === 0 ? (
-                <EmptyState icon={GitBranch} title="No runbooks" />
-              ) : (
-                <div className="divide-y divide-border flex-1 overflow-y-auto">
-                  {filtered.map((rb) => (
-                    <button
-                      key={rb.id}
-                      onClick={() => {
-                        setSelected(rb);
-                        setActiveTab('steps');
-                        setIsExpanded(false);
-                      }}
-                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors ${selected?.id === rb.id ? 'bg-primary/5' : ''
-                        }`}
-                    >
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">
-                          {rb.summary?.name || rb.name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {typeof rb.category === 'object' ? 'Uncategorized' : (rb.category || rb.summary?.category || '')}
-                        </p>
-                        <div className="mt-1.5 flex items-center gap-2">
-                          <Badge
-                            variant={(rb.successRate ?? 0) > 0.9 ? 'success' : 'warning'}
-                            className="text-[10px]"
-                          >
-                            <TrendingUp className="h-2.5 w-2.5 mr-0.5" />
-                            {formatPercent(rb.successRate ?? 0, 0)}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground">
-                            {rb.executionCount ?? 0} runs
-                          </span>
-                        </div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </button>
-                  ))}
-                </div>
+            <div className="flex items-center gap-1.5 pr-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+              {(['ALL', 'ACTIVE', 'PROCESSING', 'FAILED', 'ARCHIVED'] as FilterTab[]).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterTab(tab)}
+                    className={cn(
+                      'px-4 py-1.5 text-[10px] font-bold rounded-lg transition-all whitespace-nowrap tracking-widest',
+                      filterTab === tab
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-100'
+                        : 'text-slate-400 hover:text-blue-600 hover:bg-blue-50/50',
+                    )}
+                  >
+                    {tab}
+                  </button>
+                ),
               )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Detail */}
-        <div className="lg:col-span-3">
-          {selected ? (
-            <motion.div
-              key={selected.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <Card className="max-h-[70vh] flex flex-col">
-                <div className="px-6 py-5 border-b border-border">
-                  <div className="flex items-start justify-between gap-3 mt-0.5">
-                    <div className="min-w-0">
-
-                      <div className="flex items-start gap-3">
-                        <h2 className="text-xl font-bold text-foreground">
-                          {(() => {
-                            const name = selected.summary?.name || selected.name;
-                            return typeof name === 'object' ? 'Unnamed Runbook' : (name || 'Unnamed Runbook');
-                          })()}
-                        </h2>
-                        <Badge variant="outline" className="text-[10px] py-0 h-5 uppercase tracking-wider shrink-0 mt-1">
-                          {selected.summary?.category || selected.category || 'General'}
-                        </Badge>
-                      </div>
-                      <div className="relative mt-2">
-                        <div 
-                          className={cn(
-                            "transition-all duration-300",
-                            isExpanded ? "max-h-[200px] overflow-y-auto custom-scrollbar" : ""
-                          )}
-                        >
-                          <p 
-                            ref={textRef}
-                            style={!isExpanded ? {
-                              display: '-webkit-box',
-                              WebkitLineClamp: 6,
-                              WebkitBoxOrient: 'vertical',
-                              overflow: 'hidden'
-                            } : {}}
-                            className="text-sm text-muted-foreground whitespace-pre-wrap"
-                          >
-                            {(() => {
-                              const desc = selected.summary?.description || selected.summary?.summary || selected.description;
-                              if (typeof desc === 'object' && desc !== null) {
-                                return (desc as any).description || (desc as any).summary || (desc as any).overview || 'No description available.';
-                              }
-                              return desc || 'No description available.';
-                            })()}
-                          </p>
-                        </div>
-                        {(isClamped || isExpanded) && (
-                          <button
-                            onClick={() => setIsExpanded(!isExpanded)}
-                            className="mt-1 text-xs font-medium text-primary hover:underline focus:outline-none"
-                          >
-                            {isExpanded ? 'Show less' : 'Read more'}
-                          </button>
-                        )}
-                      </div>
-
-                    </div>
-                    <Badge variant={selected.isActive ? 'success' : 'muted'} dot className="shrink-0">
-                      {selected.isActive ? 'Active' : 'Disabled'}
-                    </Badge>
-                  </div>
-                  {/* <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Stat icon={TrendingUp} label="Success rate" value={formatPercent(selected.successRate, 0)} />
-                    <Stat icon={Clock} label="Avg duration" value={formatDuration(selected.averageDurationSeconds)} />
-                    <Stat icon={GitBranch} label="Executions" value={selected.executionCount.toString()} />
-                    <Stat icon={Clock} label="Updated" value={formatRelativeTime(selected.lastUpdated)} />
-                  </div> */}
-                </div>
-
-                {/* ----------- Tabs ----------- */}
-                <div className="flex border-b border-border px-6">
-                  {(
-                    [
-                      { id: 'steps', label: 'Defined steps', icon: GitBranch },
-
-                    ] as const
-                  ).map((tab) => {
-                    const Icon = tab.icon;
-                    const active = activeTab === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`inline-flex items-center gap-2 border-b-2 px-3 py-2.5 text-sm transition-colors ${active
-                            ? 'border-primary text-primary'
-                            : 'border-transparent text-muted-foreground hover:text-foreground'
-                          }`}
-                        type="button"
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                        {tab.label}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <CardContent className="flex-1 overflow-y-auto">
-                  {activeTab === 'steps' ? (
-                    <StepsTab runbook={selected} />
-                  ) : (
-                    <HistoryTab runbookId={selected.id} />
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+            </div>
+          </div>
+        </Card>
+        {/* Table View */}
+        <Card className="overflow-hidden border-slate-100 shadow-sm rounded-xl flex-1 flex flex-col min-h-0 bg-white">
+          {isLoading ? (
+            <div className="flex-1 flex items-center justify-center py-20">
+              <PageSpinner />
+            </div>
           ) : (
-            <Card className="max-h-[70vh] flex flex-col items-center justify-center min-h-[400px]">
-              <EmptyState
-                icon={GitBranch}
-                title="Select a runbook"
-                description="Choose a runbook from the list to view its automated remediation steps and execution history."
-              />
-            </Card>
+            <div className="flex-1 overflow-auto min-h-0 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent">
+              <Table className="border-none border-separate border-spacing-0">
+                <THead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-20 shadow-sm">
+                  <TR className="hover:bg-transparent border-none">
+                    <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">RUNBOOK</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CATEGORY</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">SOURCE</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CHUNKS</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">STATUS</TH>
+                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">UPDATED</TH>
+                    <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
+                  </TR>
+                </THead>
+                <TBody>
+                  {filtered.map((rb) => (
+                    <TR key={rb.id} className="group hover:bg-slate-50/50 transition-colors border-slate-50">
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-[15px] text-slate-800">
+                            {typeof rb.name === 'object' ? 'Unnamed Runbook' : (rb.summary?.name || rb.name || 'Unnamed Runbook')}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-50/50 text-blue-600 border-blue-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter"
+                          >
+                            RAG
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
+                          {renderDescription(rb)}
+                        </p>
+                      </TD>
+                      <TD className="px-6 py-6">
+                        <span className="text-[11px] font-bold text-slate-700 tracking-wider uppercase">
+                          {rb.summary?.category || rb.category || 'GENERAL'}
+                        </span>
+                      </TD>
+                      <TD className="px-6 py-6">
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold text-slate-500 border-slate-200 bg-white"
+                        >
+                          PDF
+                        </Badge>
+                      </TD>
+                      <TD className="px-6 py-6 text-center">
+                        <span className="text-sm font-bold text-slate-700">35</span>
+                      </TD>
+                      <TD className="px-6 py-6 text-center">
+                        <Badge
+                          variant={rb.isActive ? "success" : "muted"}
+                          className="text-[10px] font-bold uppercase tracking-widest px-2.5 h-6"
+                        >
+                          {rb.isActive ? "ACTIVE" : "INACTIVE"}
+                        </Badge>
+                      </TD>
+                      <TD className="px-6 py-6 whitespace-nowrap">
+                        <span className="text-[13px] text-slate-400 font-medium">
+                          {formatRelativeTime(rb.updatedAt || rb.lastUpdated || rb.createdAt || new Date())}
+                        </span>
+                      </TD>
+                      <TD className="px-8 py-6">
+                        <div className="flex items-center justify-end gap-5">
+                          <button
+                            onClick={() => {
+                              setSelectedRunbook(rb);
+                              setActiveDetailTab('steps');
+                            }}
+                            className="text-[11px] font-bold text-slate-400 hover:text-indigo-600 transition-colors tracking-widest"
+                          >
+                            VIEW
+                          </button>
+                          <button
+                            onClick={() => {
+                              setItemToDelete(rb);
+                              setIsDeleteModalOpen(true);
+                            }}
+                            className="text-slate-300 hover:text-rose-500 transition-all transform hover:scale-110"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </div>
           )}
-        </div>
+        </Card>
+
       </div>
+
+      {/* Runbook Detail Side Panel */}
+      <Sheet
+        open={!!selectedRunbook}
+        onClose={() => setSelectedRunbook(null)}
+        size="lg"
+        title={
+          selectedRunbook && (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-blue-600 text-white shadow-lg shadow-blue-100">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="bg-slate-50 text-slate-600 border-slate-200 text-[9px] font-bold px-2 h-5 tracking-widest uppercase">
+                    {selectedRunbook.summary?.category || selectedRunbook.category || 'GENERAL'}
+                  </Badge>
+
+                </div>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                  {typeof selectedRunbook.name === 'object' ? 'Runbook Details' : (selectedRunbook.summary?.name || selectedRunbook.name || 'Runbook Details')}
+                </h2>
+                <p className="text-[11px] text-slate-400 mt-1.5 font-medium">
+                  Updated by <span className="text-slate-600 font-bold">{selectedRunbook.createdBy || 'system@agenticops.ai'}</span> · {formatRelativeTime(selectedRunbook.updatedAt || selectedRunbook.lastUpdated || new Date())}
+                </p>
+              </div>
+            </div>
+          )
+        }
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-[10px] font-bold tracking-widest h-9 px-4"
+                leftIcon={<Archive className="h-3.5 w-3.5" />}
+                onClick={() => selectedRunbook && handleArchive(selectedRunbook.id)}
+                disabled={!!(selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived'))}
+              >
+                {selectedRunbook && (archivedIds.has(selectedRunbook.id) || selectedRunbook.status === 'archived') ? 'ARCHIVED' : 'ARCHIVE'}
+              </Button>
+            </div>
+            <Button
+              size="sm"
+              className="bg-blue-600 text-white hover:bg-blue-700 text-[10px] font-bold tracking-widest h-10 px-6 shadow-lg shadow-blue-100"
+              leftIcon={<Download className="h-4 w-4" />}
+              onClick={() => selectedRunbook && handleDownloadTxt(selectedRunbook)}
+            >
+              DOWNLOAD GUIDE
+            </Button>
+          </div>
+        }
+      >
+        {selectedRunbook && (
+          <div className="space-y-8 pb-10">
+            <ManualRichSummary
+              data={
+                typeof selectedRunbook.description === 'object' && selectedRunbook.description !== null
+                  ? (selectedRunbook.description as any)
+                  : { overview: renderDescription(selectedRunbook) }
+              }
+            />
+
+            <div className="space-y-6 pt-6 border-t border-slate-100">
+              <div className="flex items-center gap-2 px-0 py-1 text-[11px] font-bold text-slate-900 tracking-widest uppercase">
+                <BookOpen className="h-4 w-4 text-slate-800" />
+                Execution Steps
+              </div>
+              <StepsTab runbook={selectedRunbook} />
+            </div>
+          </div>
+        )}
+      </Sheet>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setItemToDelete(null);
+        }}
+        onConfirm={() => itemToDelete && deleteMutation.mutate(itemToDelete.id)}
+        isLoading={deleteMutation.isPending}
+        title="Delete Runbook?"
+        message={`Are you sure you want to delete "${typeof itemToDelete?.name === 'string' ? itemToDelete.name : (itemToDelete?.summary?.name || 'this runbook')}"? This action cannot be undone.`}
+        confirmLabel="Delete Permanently"
+      />
+
+      <CreateContentModal
+        isOpen={isModalOpen}
+        type={modalType}
+        onClose={() => {
+          setIsModalOpen(false);
+          setProcessedRunbook(null);
+        }}
+        onSubmit={handleCreate}
+        onUpdate={(id, data) => updateMutation.mutate({ id, payload: data })}
+        isLoading={uploadMutation.isPending}
+        isUpdating={updateMutation.isPending}
+        processedData={processedRunbook}
+        onReset={() => {
+          setProcessedRunbook(null);
+        }}
+      />
     </PageWrapper>
   );
 }
 
-// ============================================================================
-// Tabs
-// ============================================================================
+// --- Subcomponents ---
+
 function StepsTab({ runbook }: { runbook: Runbook }) {
+  const steps = runbook.steps || runbook.execution_steps || [];
+  if (steps.length === 0) return <p className="text-sm text-muted-foreground py-4">No steps defined.</p>;
+
   return (
-    <>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground mb-3">Execution Steps</p>
-      <ol className="space-y-2">
-        {(runbook.steps || runbook.execution_steps || []).map((step) => (
-          <li
-            key={step.order}
-            className="flex gap-3 px-3 py-2.5 rounded-md border border-border bg-muted/30"
-          >
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold">
-              {step.order}
-            </span>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground">
-                {typeof step.title === 'object' ? JSON.stringify(step.title) : (step.title || 'Untitled Step')}
-              </p>
-              {step.command && (
-                <pre className="mt-1.5 p-2 rounded bg-foreground/5 text-[11px] font-mono text-foreground/80 overflow-x-auto">
-                  {step.command}
-                </pre>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
-    </>
+    <ol className="space-y-3">
+      {steps.map((step) => (
+        <li key={step.order} className="flex gap-4 p-3 rounded-lg border border-slate-100 bg-slate-50/50">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white text-[10px] font-bold shadow-sm shadow-blue-100">
+            {step.order}
+          </span>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-slate-800">{step.title}</p>
+            {step.command && (
+              <pre className="mt-2 p-3 rounded bg-blue-950 text-blue-50 text-[11px] font-mono overflow-x-auto border border-blue-900/50">
+                {step.command}
+              </pre>
+            )}
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }
 
@@ -327,157 +574,23 @@ function HistoryTab({ runbookId }: { runbookId: string | number }) {
     queryFn: () => runbookApi.executions(runbookId, 20),
   });
 
-  if (isLoading) {
-    return (
-      <div className="py-8">
-        <Spinner size="md" label="Loading execution history…" />
-      </div>
-    );
-  }
-
-  if (!data || data.length === 0) {
-    return (
-      <div className="py-10 text-center text-sm text-muted-foreground">
-        No executions recorded yet. When this runbook runs against an incident,
-        the full step trace will appear here.
-      </div>
-    );
-  }
+  if (isLoading) return <Spinner size="md" className="py-8" />;
+  if (!data || data.length === 0) return <p className="text-sm text-muted-foreground py-4 text-center">No execution history found.</p>;
 
   return (
     <div className="space-y-3">
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        Recent executions ({data.length})
-      </p>
-      {data.map((execution) => (
-        <ExecutionCard
-          key={`${execution.incident_id}-${execution.executed_at}`}
-          execution={execution}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ExecutionCard({
-  execution,
-}: {
-  execution: {
-    incident_id: string;
-    subject: string;
-    status: string;
-    priority: string;
-    category: string;
-    executed_at: string;
-    duration_s: number;
-    success: boolean;
-    steps: Array<{
-      id: string;
-      agent: string;
-      action: string;
-      output: string;
-      type: string;
-      timestamp: string;
-    }>;
-  };
-}) {
-  const [open, setOpen] = useState(false);
-  const StatusIcon = execution.success ? CheckCircle2 : XCircle;
-
-  return (
-    <div className="rounded-md border border-border">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-surface-hover transition-colors"
-        type="button"
-      >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <StatusIcon
-            className={`h-4 w-4 shrink-0 ${execution.success ? 'text-success' : 'text-critical'
-              }`}
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <a
-                href={`/incidents/${execution.incident_id}`}
-                onClick={(e) => e.stopPropagation()}
-                className="font-mono text-xs text-primary hover:underline"
-              >
-                {execution.incident_id}
-              </a>
-              <Badge
-                variant={
-                  execution.priority === 'P1' || execution.priority === 'P2'
-                    ? 'critical'
-                    : 'muted'
-                }
-                className="text-[10px]"
-              >
-                {execution.priority}
-              </Badge>
+      {data.map((ex) => (
+        <div key={ex.executed_at} className="p-4 rounded-lg border border-slate-100 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {ex.success ? <CheckCircle2 className="h-5 w-5 text-emerald-500" /> : <XCircle className="h-5 w-5 text-rose-500" />}
+            <div>
+              <p className="text-sm font-bold text-slate-800 line-clamp-1">{ex.subject}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{formatRelativeTime(ex.executed_at)} · {formatDuration(ex.duration_s || 0)}</p>
             </div>
-            <p className="mt-0.5 truncate text-sm">{execution.subject}</p>
           </div>
+          <Badge variant="outline" className="text-[10px] font-bold">{ex.status}</Badge>
         </div>
-        <div className="text-right text-xs text-muted-foreground shrink-0">
-          <div>{formatDuration(execution.duration_s)}</div>
-          <div>{formatRelativeTime(execution.executed_at)}</div>
-        </div>
-        <ChevronRight
-          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? 'rotate-90' : ''
-            }`}
-        />
-      </button>
-
-      {open && (
-        <div className="border-t border-border bg-muted/20 px-4 py-3">
-          <p className="mb-2 text-[10px] uppercase tracking-wide text-muted-foreground">
-            Full step trace ({execution.steps.length} steps)
-          </p>
-          <ol className="space-y-2">
-            {execution.steps.map((step, idx) => (
-              <li key={step.id} className="flex gap-3 text-sm">
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold">
-                  {idx + 1}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-baseline gap-2">
-                    <span className="font-medium">{step.action}</span>
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {step.type}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{step.agent}</span>
-                  </div>
-                  {step.output && (
-                    <p className="mt-0.5 whitespace-pre-wrap text-xs text-muted-foreground">
-                      {step.output}
-                    </p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({
-  icon: Icon,
-  label,
-  value,
-}: {
-  icon: typeof GitBranch;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
-      <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-        <Icon className="h-3 w-3" /> {label}
-      </p>
-      <p className="mt-1 text-sm font-semibold text-foreground">{value}</p>
+      ))}
     </div>
   );
 }

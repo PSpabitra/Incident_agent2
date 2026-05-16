@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { AlertOctagon, ArrowRight, User } from 'lucide-react';
+import { AlertOctagon, ArrowLeft, ArrowRight, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { PageWrapper } from '@/components/layout/PageWrapper';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
@@ -19,12 +20,29 @@ const statusColors: Record<string, 'critical' | 'warning' | 'info' | 'success'> 
   resolved: 'success',
 };
 
+const ITEMS_PER_PAGE = 5;
+
 export default function Escalations() {
   const { data, isLoading } = useQuery({
     queryKey: ['escalations'],
     queryFn: () => escalationApi.list(),
     refetchInterval: 20_000,
   });
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = data ? Math.ceil(data.length / ITEMS_PER_PAGE) : 0;
+  const paginatedData = data
+    ? data.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+    : [];
+
+  const handlePrevPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
 
   return (
     <PageWrapper
@@ -42,8 +60,9 @@ export default function Escalations() {
           />
         </Card>
       ) : (
-        <div className="space-y-4">
-          {data.map((esc, idx) => (
+        <>
+          <div className="space-y-4">
+            {paginatedData.map((esc, idx) => (
             <motion.div
               key={esc.id}
               initial={{ opacity: 0, y: 8 }}
@@ -129,8 +148,34 @@ export default function Escalations() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
-        </div>
+            ))}
+          </div>
+          {totalPages > 1 && (
+            <div className="mt-6 flex justify-center items-center gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePrevPage}
+                disabled={currentPage === 1}
+                leftIcon={<ArrowLeft className="h-3.5 w-3.5" />}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={currentPage === totalPages}
+                rightIcon={<ArrowRight className="h-3.5 w-3.5" />}
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </PageWrapper>
   );

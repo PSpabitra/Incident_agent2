@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, Search, LogOut, Settings, User as UserIcon, Menu } from 'lucide-react';
+import { LogOut, Settings, User as UserIcon, Menu } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Avatar } from '@/components/ui/Avatar';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '@/context/AuthContext';
 import { appConfig } from '@/config/app.config';
-import { cn } from '@/utils/cn';
+// import { cn } from '@/utils/cn';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -45,7 +45,7 @@ export function Header({ onMenuClick }: HeaderProps) {
       {/* Search */}
       <div className="flex-1 max-w-xl">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          {/* <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="search"
             placeholder="Search incidents, runbooks, knowledge…"
@@ -54,19 +54,20 @@ export function Header({ onMenuClick }: HeaderProps) {
               'pl-10 pr-3 text-sm placeholder:text-muted-foreground/70',
               'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
             )}
-          />
+          /> */}
+          
         </div>
       </div>
 
       <div className="flex items-center gap-1">
-        <button
+        {/* <button
           type="button"
           className="relative inline-flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-surface-hover transition-colors"
           aria-label="Notifications"
         >
           <Bell className="h-4 w-4" />
           <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-critical ring-2 ring-surface" />
-        </button>
+        </button> */}
 
         <ThemeToggle />
 

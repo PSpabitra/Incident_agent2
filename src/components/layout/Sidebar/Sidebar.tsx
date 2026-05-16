@@ -6,13 +6,10 @@ import {
   GitBranch,
   AlertOctagon,
   Activity,
-  Settings,
   Sparkles,
   Plug,
-  Network,
   X,
-  ChevronLeft,
-  ChevronRight,
+  RotateCcw,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/utils/cn";
@@ -36,21 +33,31 @@ const navItems: NavItem[] = [
     icon: Inbox,
     badge: "live",
   },
+  // {
+  //   to: appConfig.routes.incidentLoop,
+  //   label: "Incident Loop",
+  //   icon: RotateCcw,
+  // },
   { to: appConfig.routes.runbooks, label: "Runbooks", icon: GitBranch },
   {
     to: appConfig.routes.knowledgeBase,
     label: "Knowledge Base",
     icon: BookOpen,
   },
-  { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
+  // { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
+   {
+    to: appConfig.routes.incidentLoop,
+    label: "Incident Timeline",
+    icon: RotateCcw,
+  },
   {
     to: appConfig.routes.escalations,
     label: "Escalations",
     icon: AlertOctagon,
     roles: ["engineer", "admin"],
   },
-  { to: appConfig.routes.actions, label: "Automated Actions", icon: Activity },
-  { to: appConfig.routes.settings, label: "Settings", icon: Settings },
+  { to: appConfig.routes.actions, label: "Activity Logs", icon: Activity },
+  // { to: appConfig.routes.settings, label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
@@ -115,7 +122,7 @@ function NavList({ onItemClick }: { onItemClick?: () => void }) {
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between gap-2 border-b border-border px-5">
+      <div className="flex h-14 items-center justify-between gap-2 border-b border-border px-5">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-soft-sm">
             <Sparkles className="h-4 w-4" />
@@ -124,9 +131,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             <span className="text-sm font-bold text-foreground truncate">
               {appConfig.name}
             </span>
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            {/* <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
               v{appConfig.version}
-            </span>
+            </span> */}
           </div>
         </div>
         {onClose && (
@@ -150,9 +157,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
               AI Agent Active
             </p>
           </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          {/* <p className="text-[11px] leading-relaxed text-muted-foreground">
             5 agents online, monitoring 12 channels.
-          </p>
+          </p> */}
         </div>
       </div>
     </div>

@@ -1,5 +1,13 @@
+import { 
+  Database, 
+  Webhook, 
+  Mail, 
+  Activity, 
+  MessageSquare,
+  Globe 
+} from 'lucide-react';
 import { Badge, type BadgeVariant } from '@/components/ui/Badge';
-import type { Priority, IncidentStatus } from '@/types';
+import type { Priority, IncidentStatus, Source } from '@/types';
 
 const priorityMap: Record<Priority, { label: string; variant: BadgeVariant }> = {
   P1: { label: 'P1 — Critical', variant: 'critical' },
@@ -32,5 +40,25 @@ export function StatusBadge({ status }: { status: IncidentStatus }) {
     <Badge variant={config.variant} dot>
       {config.label}
     </Badge>
+  );
+}
+
+const sourceMap: Record<Source, { label: string; icon: any }> = {
+  itsm: { label: 'ITSM', icon: Database },
+  webhook: { label: 'Webhook', icon: Webhook },
+  email: { label: 'Email', icon: Mail },
+  monitoring: { label: 'Monitoring', icon: Activity },
+  user_chat: { label: 'Chat', icon: MessageSquare },
+};
+
+export function SourceBadge({ source }: { source: Source }) {
+  const config = sourceMap[source] || { label: source, icon: Globe };
+  const Icon = config.icon;
+
+  return (
+    <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-50 border border-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+      <Icon className="h-3 w-3" />
+      {config.label}
+    </div>
   );
 }

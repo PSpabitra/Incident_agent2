@@ -21,7 +21,7 @@ export default function Settings() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Profile */}
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-4 w-4" /> Profile
@@ -46,7 +46,7 @@ export default function Settings() {
           </Card>
 
           {/* Agent behaviour */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-4 w-4" /> Agent Behaviour
@@ -87,10 +87,10 @@ export default function Settings() {
               />
               <Button leftIcon={<Save className="h-4 w-4" />}>Apply Settings</Button>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Notifications */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-4 w-4" /> Notifications
@@ -106,12 +106,12 @@ export default function Settings() {
               />
               <Button leftIcon={<Save className="h-4 w-4" />}>Save Channels</Button>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Side */}
         <div className="space-y-6">
-          <Card>
+          <Card className="h-full">
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
             </CardHeader>
@@ -136,7 +136,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Plug className="h-4 w-4" /> Integrations
@@ -150,7 +150,7 @@ export default function Settings() {
               <Integration name="Splunk" />
               <Integration name="GitHub" />
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
     </PageWrapper>
