@@ -39,11 +39,11 @@ const navItems: NavItem[] = [
   //   icon: RotateCcw,
   // },
   { to: appConfig.routes.runbooks, label: "Runbooks", icon: GitBranch },
-  {
-    to: appConfig.routes.knowledgeBase,
-    label: "Knowledge Base",
-    icon: BookOpen,
-  },
+  // {
+  //   to: appConfig.routes.knowledgeBase,
+  //   label: "Knowledge Base",
+  //   icon: BookOpen,
+  // },
   // { to: "/knowledge-graph", label: "Knowledge Graph", icon: Network },
    {
     to: appConfig.routes.incidentLoop,
