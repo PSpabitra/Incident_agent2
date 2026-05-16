@@ -65,6 +65,7 @@ export default function KnowledgeBase() {
       queryClient.invalidateQueries({ queryKey: ['kb'] });
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
+      // setSelectedArticle(null); // Close sidebar on successful delete
       success('Article Deleted', 'The article has been permanently removed.');
     },
     onError: () => {
@@ -318,7 +319,7 @@ TAGS: ${article.tags?.join(', ') || 'None'}
                   <TR className="hover:bg-transparent border-none">
                     <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ARTICLE</TH>
                     <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">CATEGORY</TH>
-                    <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">TAGS</TH>
+                    {/* <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">TAGS</TH> */}
                     <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-center bg-slate-50 sticky top-0 z-20 border-b border-slate-100">STATUS</TH>
                     <TH className="px-6 py-5 text-slate-400 text-[10px] tracking-widest font-bold bg-slate-50 sticky top-0 z-20 border-b border-slate-100">UPDATED</TH>
                     <TH className="px-8 py-5 text-slate-400 text-[10px] tracking-widest font-bold text-right bg-slate-50 sticky top-0 z-20 border-b border-slate-100">ACTIONS</TH>
@@ -330,9 +331,9 @@ TAGS: ${article.tags?.join(', ') || 'None'}
                       <TD className="px-8 py-6">
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-[15px] text-slate-800">{ensureString(article.title)}</span>
-                          <Badge variant="outline" className="bg-emerald-50/50 text-emerald-600 border-emerald-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter">
+                          {/* <Badge variant="outline" className="bg-emerald-50/50 text-emerald-600 border-emerald-100/50 text-[9px] font-bold px-1.5 h-5 flex items-center justify-center tracking-tighter">
                             KB
-                          </Badge>
+                          </Badge> */}
                         </div>
                         <p className="text-xs text-slate-400 mt-1.5 line-clamp-1 max-w-md font-medium">
                           {renderDescription(article)}
@@ -343,7 +344,7 @@ TAGS: ${article.tags?.join(', ') || 'None'}
                           {ensureString(article.category) || 'GENERAL'}
                         </span>
                       </TD>
-                      <TD className="px-6 py-6">
+                      {/* <TD className="px-6 py-6">
                         <div className="flex flex-wrap gap-1">
                           {article.tags?.slice(0, 2).map(tag => (
                             <Badge key={tag} variant="outline" className="text-[9px] font-bold text-slate-500 border-slate-200 bg-white px-1.5">
@@ -351,7 +352,7 @@ TAGS: ${article.tags?.join(', ') || 'None'}
                             </Badge>
                           ))}
                         </div>
-                      </TD>
+                      </TD> */}
                       <TD className="px-6 py-6 text-center">
                         <Badge
                           variant={article.isPublished ? 'success' : 'muted'}
@@ -433,6 +434,7 @@ TAGS: ${article.tags?.join(', ') || 'None'}
               >
                 {selectedArticle && archivedIds.has(selectedArticle.id) ? 'ARCHIVED' : 'ARCHIVE'}
               </Button>
+             
             </div>
             <Button
               size="sm"

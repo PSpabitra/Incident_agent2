@@ -214,6 +214,22 @@ export default function IncidentLoop() {
                       s.agent !== 'Mistral Analysis Agent' &&
                       s.agent !== 'KB Learning Agent'
                     );
+
+                    const displaySteps = [];
+                    for (const step of agentSteps) {
+                      displaySteps.push(step);
+                      if (step.action.toLowerCase().includes('email') && selectedIncident.status === 'resolved') {
+                        displaySteps.push({
+                          id: `resolved-${step.id}`,
+                          action: 'Incident Resolved',
+                          agent: 'System',
+                          timestamp: selectedIncident.updatedAt || selectedIncident.createdAt || new Date().toISOString(),
+                          output: 'The incident has been successfully resolved and closed.',
+                          isSynthetic: true
+                        });
+                      }
+                    }
+
                     const formatTime = (ts: string) => new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
                     const getStepStyles = (agent: string, action: string) => {
@@ -364,12 +380,12 @@ export default function IncidentLoop() {
                       return <p className="text-[11px] text-slate-400 font-medium leading-relaxed mt-1">{output}</p>;
                     };
 
-                    return agentSteps.map((step, idx) => {
+                    return displaySteps.map((step, idx) => {
                       const styles = getStepStyles(step.agent, step.action);
                       return (
                         <div key={step.id} className="relative flex gap-6 group/step">
                           {/* Connector Line */}
-                          {idx !== agentSteps.length - 1 && (
+                          {idx !== displaySteps.length - 1 && (
                             <div className="absolute left-[11px] top-8 w-px h-full bg-slate-100 group-hover/step:bg-slate-200 transition-colors overflow-hidden">
                               <div className="absolute inset-0 bg-gradient-to-b from-blue-500 via-purple-500 to-rose-500 opacity-20" />
                             </div>
