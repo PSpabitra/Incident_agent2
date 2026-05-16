@@ -302,7 +302,7 @@ function CreateConnectorModal({
         name,
         config,
         sync_enabled: true,
-        poll_interval_sec: 30,
+        poll_interval_sec: 120,
       }),
     onSuccess: onCreated,
   });
