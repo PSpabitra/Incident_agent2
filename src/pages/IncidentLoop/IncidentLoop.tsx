@@ -219,12 +219,14 @@ export default function IncidentLoop() {
                     const getStepStyles = (agent: string, action: string) => {
                       const a = agent.toLowerCase();
                       const act = action.toLowerCase();
-                      if (act.includes('email')) return { icon: <Mail className="h-3.5 w-3.5" />, color: 'text-rose-500', bg: 'bg-rose-50', border: 'border-rose-100', shadow: 'shadow-rose-100/50' };
-                      if (a.includes('ingestion')) return { icon: <Zap className="h-3.5 w-3.5" />, color: 'text-blue-500', bg: 'bg-blue-50', border: 'border-blue-100', shadow: 'shadow-blue-100/50' };
-                      if (a.includes('triage')) return { icon: <Search className="h-3.5 w-3.5" />, color: 'text-purple-500', bg: 'bg-purple-50', border: 'border-purple-100', shadow: 'shadow-purple-100/50' };
-                      if (a.includes('resolution')) return { icon: <FileText className="h-3.5 w-3.5" />, color: 'text-amber-500', bg: 'bg-amber-50', border: 'border-amber-100', shadow: 'shadow-amber-100/50' };
-                      if (a.includes('escalation')) return { icon: <ArrowUpRight className="h-3.5 w-3.5" />, color: 'text-indigo-500', bg: 'bg-indigo-50', border: 'border-indigo-100', shadow: 'shadow-indigo-100/50' };
-                      return { icon: <CheckCircle2 className="h-3.5 w-3.5" />, color: 'text-slate-500', bg: 'bg-slate-50', border: 'border-slate-100', shadow: 'shadow-slate-100/50' };
+                      const base = { bg: 'bg-emerald-50', border: 'border-emerald-200', color: 'text-emerald-600', shadow: 'shadow-emerald-100/50' };
+                      
+                      if (act.includes('email')) return { ...base, icon: <Mail className="h-3.5 w-3.5" /> };
+                      if (a.includes('ingestion')) return { ...base, icon: <Zap className="h-3.5 w-3.5" /> };
+                      if (a.includes('triage')) return { ...base, icon: <Search className="h-3.5 w-3.5" /> };
+                      if (a.includes('resolution')) return { ...base, icon: <FileText className="h-3.5 w-3.5" /> };
+                      if (a.includes('escalation')) return { ...base, icon: <ArrowUpRight className="h-3.5 w-3.5" /> };
+                      return { ...base, icon: <CheckCircle2 className="h-3.5 w-3.5" /> };
                     };
 
 
